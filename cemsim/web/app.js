@@ -553,7 +553,8 @@ function lineChart(c, series, opt = {}) {
   const X = v => L + (v - x0) / (x1 - x0) * (W - L - R), Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
   g.strokeStyle = "#e3e3e3"; g.fillStyle = "#555"; g.font = "11px Arial"; g.lineWidth = 1;
   for (let i = 0; i <= 5; i++) { const v = y0 + (y1 - y0) * i / 5, y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(W - R, y); g.stroke(); g.fillText(v.toFixed(Math.abs(y1 - y0) < 10 ? 1 : 0), 4, y + 4); }
-  for (let i = 0; i <= 6; i++) { const v = x0 + (x1 - x0) * i / 6, x = X(v); g.beginPath(); g.moveTo(x, T); g.lineTo(x, H - B); g.stroke(); g.fillText(opt.xfmt ? opt.xfmt(v) : v.toFixed(0), x - 14, H - 8); }
+  const nt = opt.xticks || 6;
+  for (let i = 0; i <= nt; i++) { const v = x0 + (x1 - x0) * i / nt, x = X(v); g.beginPath(); g.moveTo(x, T); g.lineTo(x, H - B); g.stroke(); g.fillText(opt.xfmt ? opt.xfmt(v) : v.toFixed(0), x - 14, H - 8); }
   for (const s of series) {
     g.strokeStyle = s.color; g.lineWidth = s.w || 2; g.beginPath(); let first = true;
     s.x.forEach((xv, i) => { const yv = s.y[i]; if (yv === null || !isFinite(yv)) return; const px = X(xv), py = Y(yv); first ? g.moveTo(px, py) : g.lineTo(px, py); first = false; });
@@ -572,7 +573,7 @@ function renderProfiles() {
   g.fillStyle = "#222"; g.font = "11px Arial"; g.fillText("inlet", 4, 40); g.fillText("outlet", W - 40, 75);
   for (let T = 150; T <= 450; T += 50) { const x = 50 + (T - 150) / 300 * (W - 60); g.fillStyle = tempColor(T); g.fillRect(x, 66, 30, 10); g.fillStyle = "#222"; g.fillText(T + "°C", x + 32, 75); }
   lineChart($("#coolprof"), [{ name: "clinker", x: P.cooler_T.map((_, i) => i + 0.5), y: P.cooler_T, color: "#c0392b" }], { xfmt: v => v.toFixed(0) + " m", y0: 0 });
-  lineChart($("#phprof"), [{ name: "stage T", x: [1, 2, 3, 4, 5], y: P.ph_T, color: "#8e44ad" }], { xfmt: v => ["", "S1", "S2", "S3", "S4", "CAL"][Math.round(v)] || "" });
+  lineChart($("#phprof"), [{ name: "stage T", x: [1, 2, 3, 4, 5], y: P.ph_T, color: "#8e44ad" }], { xfmt: v => (Math.abs(v - Math.round(v)) < 1e-6 ? ["", "S1", "S2", "S3", "S4", "CAL"][Math.round(v)] || "" : ""), xticks: 4 });
 }
 const PRESETS = {
   "Burning zone": ["T_bz", "free_lime_pct", "kiln_drive_kW", "NO_kiln_inlet_ppm"],
@@ -601,7 +602,12 @@ async function drawTrend() {
   const series = [], leg = [];
   tags.forEach((t, i) => {
     const y = r[t] || []; const f = y.filter(v => v !== null);
-    let lo = Math.min(...f), hi = Math.max(...f); if (hi - lo < 1e-6) { hi += 1; lo -= 1; }
+    // each pen is scaled to its own range, but never zoomed below an engineering minimum
+    // span (2 % of the value, at least 0.5): a steady process value must plot flat, not as
+    // amplified numerical noise
+    let lo = Math.min(...f), hi = Math.max(...f);
+    const mid = (lo + hi) / 2, minSpan = Math.max(0.5, 0.02 * Math.abs(mid));
+    if (hi - lo < minSpan) { lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
     series.push({ name: t, x: r.t, y: y.map(v => v === null ? null : (v - lo) / (hi - lo) * 100), color: PEN[i % PEN.length] });
     leg.push(`<span><i style="background:${PEN[i % PEN.length]}"></i>${t}: <b>${fmt(y[y.length - 1], 2)}</b> <small>[${fmt(lo, 1)} .. ${fmt(hi, 1)}]</small></span>`);
   });

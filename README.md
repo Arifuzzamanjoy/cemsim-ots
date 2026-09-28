@@ -26,6 +26,33 @@ campaign, defects found and their fixes are in **[docs/VALIDATION.md](docs/VALID
 > Simulex is a registered trademark of KHD Humboldt Wedag. This project is independent and
 > not affiliated with or endorsed by KHD.
 
+## Screenshots
+
+### Operator HMI
+
+![Kiln line mimic: preheater, calciner, rotary kiln and grate cooler with live values, gas analysers and production panel](docs/images/hmi_kiln_line.png)
+*Kiln line overview: 5-stage preheater, calciner, rotary kiln and grate cooler with live values,
+kiln-inlet and preheater-exit gas analysers, faceplates and the production & quality panel.*
+
+| Trends during a disturbance | Kiln profiles & shell scanner |
+|---|---|
+| ![Trends of burning zone temperature, free lime, kiln drive power and NO after a coal heating value drop](docs/images/hmi_trends.png) | ![Axial gas, bed, brick and shell temperature profiles, shell scanner, cooler and preheater temperatures](docs/images/hmi_kiln_profiles.png) |
+| Main-burner coal heating value drops: burning zone falls 1450 → 1414 °C, free lime rises to 5 %, NO drops (the operator's early warning). | Gas / material / brick / shell temperatures along the kiln, shell scanner, cooler and preheater profiles. |
+
+![Trainer station with simulation control, filesets, lab results and the disturbance catalogue](docs/images/hmi_trainer.png)
+*Trainer station: speed-up, filesets (saved plant states), lab samples and the disturbance catalogue.*
+
+### Live 3-D plant (`/3d`)
+
+![3-D kiln line with preheater tower, calciner, rotary kiln coloured by the shell scanner, cooler and live value tags](docs/images/plant3d_overview.png)
+*The whole line in 3-D, driven by the live model: shell-scanner colours on the rotating kiln,
+temperature-tinted cyclones and calciner, stack plume and live value tags.*
+
+| Preheater tower | X-ray kiln view |
+|---|---|
+| ![Preheater tower close-up with cyclones, risers and calciner](docs/images/plant3d_preheater.png) | ![X-ray view inside the kiln showing the flame and the glowing material bed](docs/images/plant3d_xray_kiln.png) |
+| Cyclones with tangential inlets, risers and meal pipes, calciner and gooseneck (geometry designed in FreeCAD). | X-ray mode: flame at the model's flame length and the material bed glowing by its temperature. |
+
 ## Quick start
 
 ```bash
