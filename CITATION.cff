@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use CemSim in teaching or research, please cite it."
+title: "CemSim: open-source cement kiln-line operator training simulator"
+authors:
+  - name: "Arifuzzaman Joy"
+repository-code: "https://github.com/Arifuzzamanjoy/cemsim-ots"
+license: Apache-2.0
+keywords:
+  - cement
+  - rotary kiln
+  - operator training simulator
+  - process simulation

@@ -1,0 +1,112 @@
+[project]
+name = "cemsim-ots"
+version = "0.1.0"
+description = "Open-source cement kiln-line operator training simulator: first-principles process model, DCS-style HMI, trainer station and live 3-D plant."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Arifuzzaman Joy" }]
+requires-python = ">=3.11"
+keywords = ["cement", "rotary-kiln", "process-simulation", "operator-training", "digital-twin", "dcs", "hmi"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
+
+[project.urls]
+Homepage = "https://github.com/Arifuzzamanjoy/cemsim-ots"
+Issues = "https://github.com/Arifuzzamanjoy/cemsim-ots/issues"
+
+[project.scripts]
+cemsim = "cemsim.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.6",
+    "pre-commit>=3.7",
+    "httpx>=0.27",            # FastAPI TestClient
+]
+e2e = [
+    "playwright>=1.44",
+    "websockets>=12",
+]
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cemsim"]
+
+# ------------------------------------------------------------------ ruff
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["cemsim/web/vendor"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",    # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "B",         # bugbear
+    "UP",        # pyupgrade
+    "SIM",       # simplify
+    "C4",        # comprehensions
+    "PIE",       # misc lints
+    "RUF",       # ruff-specific
+    "NPY",       # numpy
+    "S",         # bandit security
+]
+ignore = [
+    "E501",      # long lines are handled by the formatter; physics tables stay readable
+    "E741",      # 'l' is a natural name in some formulae
+    "S101",      # assert is used for design invariants
+    "S311",      # random is for process noise, not crypto
+    "S104",      # server binds 0.0.0.0 on purpose (training room / container)
+    "RUF001", "RUF002", "RUF003",   # greek letters / degree signs in docstrings
+    "SIM108",    # ternaries are not always clearer
+    "B905",      # zip(strict=) not required
+    "RUF012",    # mutable class attrs in dataclass-like constants
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B", "SIM"]
+"scripts/**" = ["S", "E402"]
+"tools/freecad/**" = ["S", "E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ------------------------------------------------------------------ pytest / coverage
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+filterwarnings = ["ignore::RuntimeWarning"]
+
+[tool.coverage.run]
+source = ["cemsim"]
+omit = ["cemsim/freecad_bridge.py"]
+
+[tool.coverage.report]
+skip_empty = true
+show_missing = false

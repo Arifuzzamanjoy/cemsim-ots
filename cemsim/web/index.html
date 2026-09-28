@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CemSim Kiln Line</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<svg id="gdefs" width="0" height="0" style="position:absolute" aria-hidden="true"></svg>
+<div id="app">
+  <nav id="nav">
+    <div class="brand">Cem<span>Sim</span></div>
+    <button data-screen="plant" class="active">Kiln line</button>
+    <button data-screen="burner">Burner / BMS</button>
+    <button data-screen="cooler">Cooler</button>
+    <button data-screen="profiles">Kiln profiles</button>
+    <button data-screen="trends">Trends</button>
+    <button data-screen="alarms">Alarms <b id="nav-alarm-count"></b></button>
+    <button data-screen="events">Events</button>
+    <button data-screen="groups">Groups</button>
+    <button id="nav3d" class="trainer" title="live 3-D plant (new window)">3D plant &#8599;</button>
+    <div class="sep"></div>
+    <button data-screen="trainer" class="trainer">Trainer</button>
+    <button data-screen="scoring" class="trainer">Scoring</button>
+    <button data-screen="balance" class="trainer">Heat balance</button>
+  </nav>
+  <main id="main">
+    <div id="alarm-banner"></div>
+    <section id="scr-plant" class="screen active"><svg id="mimic" viewBox="0 0 1400 780"></svg></section>
+    <section id="scr-burner" class="screen"><svg id="burner" viewBox="0 0 1400 780"></svg></section>
+    <section id="scr-cooler" class="screen"><svg id="coolersvg" viewBox="0 0 1400 780"></svg></section>
+    <section id="scr-profiles" class="screen">
+      <div class="panel"><h3>Kiln axial temperature profiles <small>(inlet &rarr; burner)</small></h3><canvas id="prof" height="330"></canvas></div>
+      <div class="panel"><h3>Kiln shell scanner</h3><canvas id="scanner" height="90"></canvas></div>
+      <div class="panel two">
+        <div><h3>Cooler clinker temperature</h3><canvas id="coolprof" height="200"></canvas></div>
+        <div><h3>Preheater stage temperatures</h3><canvas id="phprof" height="200"></canvas></div>
+      </div>
+    </section>
+    <section id="scr-trends" class="screen">
+      <div class="panel">
+        <div class="toolbar">
+          <label>Window <select id="trend-win"><option>10</option><option>30</option><option selected>60</option><option>180</option><option>720</option></select> min</label>
+          <label>Preset <select id="trend-preset"></select></label>
+          <span id="trend-tags"></span>
+        </div>
+        <canvas id="trend" height="480"></canvas>
+        <div id="trend-legend"></div>
+      </div>
+    </section>
+    <section id="scr-alarms" class="screen">
+      <div class="panel"><div class="toolbar"><button id="ack-all">Acknowledge all</button></div>
+        <table id="alarm-table" class="grid"><thead><tr><th>Time</th><th>Pri</th><th>Tag</th><th>Description</th><th>Value</th><th>Limit</th><th>State</th></tr></thead><tbody></tbody></table>
+        <h3>Alarm journal</h3>
+        <table id="alarm-hist" class="grid"><thead><tr><th>Time</th><th>Event</th><th>Tag</th><th>Description</th><th>Value</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+    <section id="scr-events" class="screen">
+      <div class="panel"><h3>Table of events <small>(every operator, trainer and interlock action)</small></h3>
+        <table id="event-table" class="grid"><thead><tr><th>Time stamp</th><th>Source</th><th>Tag name</th><th>Value</th><th>Old</th><th>Comment</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+    <section id="scr-groups" class="screen"><div class="panel"><h3>Group control</h3><div id="group-grid"></div></div></section>
+    <section id="scr-trainer" class="screen">
+      <div class="panel two">
+        <div>
+          <h3>Simulation control</h3>
+          <div class="row"><button id="btn-run2">Start / stop</button>
+            <label>Acceleration <select id="speed2"><option>1</option><option>2</option><option>5</option><option>10</option><option>20</option><option>50</option></select> cycles/s</label></div>
+          <h3>State conditions (filesets)</h3>
+          <div class="row"><input id="snap-name" placeholder="name"><input id="snap-comment" placeholder="comment" style="flex:2"><button id="snap-save">Save</button></div>
+          <table id="snap-table" class="grid"><thead><tr><th>Fileset</th><th>Comment</th><th></th></tr></thead><tbody></tbody></table>
+          <h3>Lab (spot samples, 20 min analysis delay)</h3>
+          <div id="lab-box"></div>
+        </div>
+        <div>
+          <h3>Trainer interventions / disturbances</h3>
+          <div id="dist-box"></div>
+        </div>
+      </div>
+    </section>
+    <section id="scr-scoring" class="screen">
+      <div class="panel"><div class="toolbar"><button id="sess-start">Start session</button><button id="sess-stop">Stop session</button><span id="sess-total"></span></div>
+        <table id="score-table" class="grid"><thead><tr><th>Subject</th><th>Parameter</th><th>Method</th><th>Ref</th><th>Tol</th><th>Weight</th><th>Average</th><th>Min</th><th>Max</th><th>In band %</th><th>Score</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+    <section id="scr-balance" class="screen">
+      <div class="panel"><h3>Kiln line heat balance <small>kJ / kg clinker, 25 &deg;C reference, LHV basis</small></h3><div id="hb-box"></div></div>
+    </section>
+  </main>
+  <footer id="footer">
+    <div class="units" id="unit-lights"></div>
+    <button id="btn-run" class="runbtn">start</button>
+    <div class="clock"><div>Start/Stop Simulation</div><div id="simclock">0:00:00</div>
+      <select id="speed"><option value="1">1 Cycles / second</option><option value="2">2 Cycles / second</option><option value="5">5 Cycles / second</option><option value="10">10 Cycles / second</option><option value="20">20 Cycles / second</option><option value="50">50 Cycles / second</option></select></div>
+    <button class="trainerbtn" data-screen="trainer">&#9745; Trainer</button>
+    <button class="trainerbtn" id="open3d" title="open the live 3-D plant in a new window">3D plant &#8599;</button>
+    <div class="kpis" id="footer-kpis"></div>
+    <div class="fc" id="fc-box"></div>
+    <div class="logo">CEMSIM<span>&reg;</span></div>
+  </footer>
+</div>
+<div id="faceplate" class="hidden"></div>
+<div id="toasts"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+name: Nightly validation
+
+# Long-running process validation that is too slow for every push:
+#   robustness sweep - all 19 disturbances at min/max for 60 simulated minutes
+#   operating sequences - hot standby -> full production, controlled shutdown
+on:
+  schedule:
+    - cron: "17 2 * * *"      # daily 02:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  robustness:
+    name: Robustness sweep (${{ matrix.chunk }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk:
+          - "coal_lhv_kiln coal_lhv_cal coal_ash coal_fluct flame_shape"
+          - "rawmix_lsf rawmix_sm rawmix_moisture feed_fluct seal_false_air"
+          - "ph_false_air kiln_ring ambient_T cyclone4_block cyclone4_release"
+          - "cooler_fan1_fail id_fan_trip kiln_drive_trip pa_fan_trip"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+        with:
+          enable-cache: true
+          python-version: "3.13"
+      - run: uv sync
+      - name: Robustness sweep
+        env:
+          CASES: ${{ matrix.chunk }}
+        run: |
+          read -ra cases <<< "$CASES"
+          uv run --no-sync python tests/validation/robustness.py "${cases[@]}"
+
+  operations:
+    name: Operating sequence (${{ matrix.seq }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        seq: [startup, shutdown]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+        with:
+          enable-cache: true
+          python-version: "3.13"
+      - run: uv sync
+      - name: Operating sequence
+        env:
+          SEQ: ${{ matrix.seq }}
+        run: uv run --no-sync python tests/validation/operations.py "$SEQ"

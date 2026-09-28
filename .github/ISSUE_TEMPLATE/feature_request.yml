@@ -1,0 +1,16 @@
+name: Feature / model request
+description: New unit model, disturbance, trainer function or HMI screen
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Training need
+      description: Which operator skill or plant situation should this let trainees practise?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: For process models, include equations or references (textbooks, papers, plant data).

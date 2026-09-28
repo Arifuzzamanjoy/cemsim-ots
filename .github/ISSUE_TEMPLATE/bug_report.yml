@@ -1,0 +1,32 @@
+name: Bug report
+description: Something in the simulator, HMI or 3-D view is wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include screenshots of the HMI / 3-D view if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Fileset loaded, commands / disturbances applied, simulation speed.
+      placeholder: |
+        1. load fileset "nominal"
+        2. trigger "cyclone4_block"
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: For process behaviour, the physical reasoning or plant data you expect.
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "OS, browser, Python version, commit"

@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.png binary
+*.sh text eol=lf
+
+# third-party and generated files: excluded from diffs noise and language statistics
+cemsim/web/vendor/** linguist-vendored
+cemsim/web/assets/plant3d.json linguist-generated -diff
+data/snapshots/*.json linguist-generated -diff
+uv.lock linguist-generated

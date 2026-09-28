@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: "1"
+  UV_LOCKED: "1"            # the lockfile must be up to date
+
+jobs:
+  lint:
+    name: Lint & format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --group dev
+      - name: ruff check
+        run: uv run --no-sync ruff check --output-format=github .
+      - name: ruff format
+        run: uv run --no-sync ruff format --check --diff .
+      - name: pre-commit hygiene hooks
+        run: uv run --no-sync pre-commit run --all-files --show-diff-on-failure
+      - name: actionlint (workflow correctness)
+        run: uvx --from actionlint-py==1.7.12.25 actionlint
+      - name: zizmor (workflow supply-chain security)
+        run: uvx zizmor@1.30.1 --offline .github/workflows
+
+  test:
+    name: Tests (py${{ matrix.python }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          - { os: windows-latest, python: "3.13" }
+          - { os: macos-latest, python: "3.13" }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python }}
+      - run: uv sync --group dev
+      - name: pytest (physics, plant, regressions)
+        shell: bash
+        env:
+          JUNIT: junit-${{ matrix.os }}-${{ matrix.python }}.xml
+        run: uv run --no-sync pytest --cov --cov-report=xml --cov-report=term --junitxml="$JUNIT"
+      - name: Coverage summary
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.13'
+        shell: bash
+        run: |
+          echo '### Coverage' >> "$GITHUB_STEP_SUMMARY"
+          uv run --no-sync coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.python }}
+          path: |
+            junit-*.xml
+            coverage.xml
+          retention-days: 14
+
+  min-deps:
+    name: Minimum dependency versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      UV_LOCKED: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+        with:
+          python-version: "3.11"
+      - name: Resolve lowest direct versions (numpy 1.26, scipy 1.11, fastapi 0.110, ...)
+        run: uv sync --group dev --resolution lowest-direct
+      - run: uv run --no-sync python -c "import numpy, scipy, fastapi; print(numpy.__version__, scipy.__version__, fastapi.__version__)"
+      - run: uv run --no-sync pytest
+
+  e2e:
+    name: Browser end-to-end (HMI, layout, 3-D WebGL, FreeCAD mock)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+        with:
+          enable-cache: true
+          python-version: "3.13"
+      - run: uv sync --group e2e
+      - name: Install Chromium
+        run: uv run --no-sync playwright install --with-deps chromium
+      - name: End-to-end suite
+        run: bash scripts/ci_e2e.sh
+        env:
+          OUT: e2e-artifacts
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        if: always()
+        with:
+          name: e2e-artifacts
+          path: e2e-artifacts
+          retention-days: 14
+
+  audit:
+    name: Dependency vulnerability audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+      - name: Export locked runtime requirements
+        run: uv export --no-dev --no-emit-project --no-hashes -o requirements-audit.txt
+      - name: pip-audit
+        run: uvx pip-audit -r requirements-audit.txt --strict --progress-spinner off
+
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+      - run: uv build
+      - name: Wheel contains the HMI and the 3-D model
+        run: |
+          python - <<'EOF'
+          import glob, zipfile
+          whl = glob.glob("dist/*.whl")[0]
+          names = set(zipfile.ZipFile(whl).namelist())
+          need = ["cemsim/web/index.html", "cemsim/web/plant3d.js", "cemsim/web/assets/plant3d.json",
+                  "cemsim/web/vendor/three.module.min.js"]
+          missing = [n for n in need if n not in names]
+          assert not missing, missing
+          print(whl, "ok,", len(names), "files")
+          EOF
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: dist
+          path: dist
+          retention-days: 14

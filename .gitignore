@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+junit*.xml
+
+# local runs / scratch
+scratch_*
+*.log
+data/snapshots/_*.json
+data/snapshots/e2e_*.json
+*.tmp
+
+# proprietary reference material - never publish (third-party copyright)
+Simulex_*.pdf
+*.pdf
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
