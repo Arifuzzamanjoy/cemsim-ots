@@ -9,6 +9,7 @@ import http.server
 import os
 import shutil
 import subprocess
+import sys
 import threading
 from pathlib import Path
 
@@ -22,8 +23,11 @@ GIT_ENV = {
     "GIT_COMMITTER_EMAIL": "t@example.com",
 }
 
+# scripts/deploy.sh is a Linux-server script (bash, flock, systemd conventions); macOS has no flock and
+# Windows has no usable /bin/sh for the stubs, so these tests run only where the script can run.
 pytestmark = pytest.mark.skipif(
-    shutil.which("git") is None or shutil.which("curl") is None, reason="needs git and curl"
+    not sys.platform.startswith("linux") or any(shutil.which(t) is None for t in ("git", "curl", "flock", "bash")),
+    reason="deploy.sh needs Linux with git, curl, flock and bash",
 )
 
 

@@ -50,6 +50,9 @@ def test_stale_recovery_data_is_cleared_inside_the_sandbox_only(tmp_path):
     (outside / "important").mkdir(parents=True)
     other = tmp_path / "other"
     (other / ".cache").mkdir(parents=True)
-    (other / ".cache" / "FreeCAD").symlink_to(outside)
+    try:
+        (other / ".cache" / "FreeCAD").symlink_to(outside)
+    except (OSError, NotImplementedError):  # Windows without the symlink privilege
+        return
     assert clear_stale_recovery(other) is False
     assert (outside / "important").exists()
