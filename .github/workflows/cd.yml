@@ -40,6 +40,30 @@ jobs:
       name: production
       url: ${{ vars.DEPLOY_URL }}
     steps:
+      # First, so a misconfiguration fails in seconds with a clear message (not after waiting for CI, and
+      # not as a cryptic `ssh` usage error).  Only names are printed, never values.
+      - name: Check the deployment configuration
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          missing=()
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            [ -n "${!name}" ] || missing+=("${name}")
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error title=Deployment secrets missing::empty or not found: ${missing[*]}. They must be secrets of the GitHub environment named exactly 'production' (Settings -> Environments -> production), not repository secrets and not another environment."
+            exit 1
+          fi
+          [[ "${DEPLOY_SSH_KEY}" == *"PRIVATE KEY-----"* ]] || {
+            echo "::error title=DEPLOY_SSH_KEY is not a private key::paste the whole private key file, including the BEGIN and END lines (not the .pub file)." ; exit 1; }
+          [[ "${DEPLOY_KNOWN_HOSTS}" == *"${DEPLOY_HOST}"* ]] || {
+            echo "::error title=DEPLOY_KNOWN_HOSTS does not mention DEPLOY_HOST::it must be a known_hosts line that starts with the host, e.g. '1.2.3.4 ssh-ed25519 AAAA...'." ; exit 1; }
+          echo "configuration looks complete (host, user, key, known_hosts)"
+
       - name: Resolve the commit to deploy
         id: rev
         env:
