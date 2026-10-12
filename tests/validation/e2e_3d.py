@@ -159,7 +159,7 @@ async def main():
 
         # HMI integration (production: no FreeCAD controls, 3D button opens the page)
         hmi = await b.new_page(viewport={"width": 1500, "height": 850})
-        await hmi.goto(f"http://{BASE}/")
+        await hmi.goto(f"http://{BASE}/hmi")
         await hmi.wait_for_timeout(1500)
         fc = await hmi.inner_html("#fc-box")
         check("production HMI shows no FreeCAD controls", fc.strip() == "", fc[:40])

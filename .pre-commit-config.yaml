@@ -4,9 +4,9 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^cemsim/web/(vendor|assets)/
+        exclude: ^cemsim/web/(vendor|assets)/|^third_party/
       - id: end-of-file-fixer
-        exclude: ^cemsim/web/(vendor|assets)/|^data/snapshots/
+        exclude: ^cemsim/web/(vendor|assets)/|^data/snapshots/|^third_party/
       - id: check-yaml
       - id: check-toml
       - id: check-json
@@ -17,7 +17,7 @@ repos:
       - id: detect-private-key
       - id: mixed-line-ending
         args: ["--fix=lf"]
-        exclude: ^cemsim/web/vendor/
+        exclude: ^cemsim/web/vendor/|^third_party/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.9

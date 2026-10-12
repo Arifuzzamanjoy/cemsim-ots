@@ -75,7 +75,7 @@ async def main():
         pg = await b.new_page(viewport={"width": 1600, "height": 900})
         errs = []
         pg.on("console", lambda m: errs.append(m.text) if m.type == "error" else None)
-        await pg.goto(f"http://{BASE}/")
+        await pg.goto(f"http://{BASE}/hmi")
         await pg.wait_for_timeout(1500)
         geom = await pg.evaluate("() => window.MIMIC_GEOM")
         boxes = await pg.evaluate("""() => [...document.querySelectorAll('#mimic g.val')].map(g => {

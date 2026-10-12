@@ -44,7 +44,7 @@ async def main():
         pg = await b.new_page(viewport={"width": 1500, "height": 850})
         errors = []
         pg.on("pageerror", lambda e: errors.append(str(e)))
-        await pg.goto(f"http://{BASE}/")
+        await pg.goto(f"http://{BASE}/hmi")
         await pg.wait_for_timeout(2000)
         check("FreeCAD controls rendered", await pg.is_visible("#fc-build") and await pg.is_visible("#fc-dot"))
 
@@ -132,7 +132,7 @@ async def main():
         if DEAD:
             b = await p.chromium.launch()
             pg = await b.new_page()
-            await pg.goto(f"http://{DEAD}/")
+            await pg.goto(f"http://{DEAD}/hmi")
             await pg.wait_for_timeout(1500)
             await pg.click("#fc-build")
             ok, msg, dt = await wait_state(pg, "error", 15)

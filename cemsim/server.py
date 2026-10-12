@@ -26,6 +26,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import api_design, api_platform
 from .sim import TREND_TAGS, CommandError, Simulator, _num
 from .trainer import DISTURBANCES
 
@@ -176,6 +177,10 @@ async def lifespan(_app):
 
 app = FastAPI(title="CemSim kiln-line training simulator", lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=2048)  # 3-D model json 890 kB -> ~200 kB
+app.add_middleware(api_design.BodyLimitMiddleware)
+api_design.configure(lambda: BRIDGE)  # designs are built in the same FreeCAD worker as the live model
+app.include_router(api_design.router)
+app.include_router(api_platform.router)
 
 
 # ---------------------------------------------------------------------------
@@ -346,9 +351,32 @@ async def api_lab():
     return JSONResponse(_clean(get_sim().lab.results[-50:]))
 
 
+@app.get("/api/freecad/health")
+async def api_freecad_health(deep: bool = False):
+    """Structured FreeCAD connection report: reachable / authenticated / addon + protocol
+    version / GUI-dispatch health (/ open documents with deep=true).  Never raises."""
+    if BRIDGE is None:
+        return JSONResponse({"configured": False, "ok": False, "problems": ["--freecad host:port not set"]})
+    rep = await asyncio.to_thread(BRIDGE.diagnose, deep)
+    return JSONResponse(_clean({"configured": True, **rep}))
+
+
 @app.get("/")
 async def index():
+    """Main page: the Design Studio (prompt -> FreeCAD model, simulator gallery)."""
+    return FileResponse(WEB / "design.html")
+
+
+@app.get("/hmi")
+async def hmi():
+    """The cement kiln operator HMI: the platform's flagship simulator demo."""
     return FileResponse(WEB / "index.html")
+
+
+@app.get("/design")
+async def design_page():
+    """Alias of `/` (kept for existing links)."""
+    return FileResponse(WEB / "design.html")
 
 
 @app.get("/3d")
@@ -366,15 +394,26 @@ def main():
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--freecad", default="", help="host:port of the FreeCAD MCP XML-RPC server")
+    ap.add_argument(
+        "--freecad-token",
+        default="",
+        help="auth token of the FreeCAD MCP addon (prefer the FREECAD_MCP_TOKEN env var: argv is world-readable)",
+    )
+    ap.add_argument("--ssl-keyfile", default="", help="path to SSL private key file")
+    ap.add_argument("--ssl-certfile", default="", help="path to SSL certificate file")
     a = ap.parse_args()
     if a.freecad:
         from .freecad_bridge import FreeCADBridge
 
-        h, p = a.freecad.split(":")
-        BRIDGE = FreeCADBridge(h, int(p))
+        h, p = a.freecad.rsplit(":", 1)
+        BRIDGE = FreeCADBridge(h, int(p), a.freecad_token or None)
     import uvicorn
 
-    uvicorn.run(app, host=a.host, port=a.port, log_level="warning")
+    kwargs: dict[str, object] = {"host": a.host, "port": a.port, "log_level": "warning"}
+    if a.ssl_keyfile and a.ssl_certfile:
+        kwargs["ssl_keyfile"] = a.ssl_keyfile
+        kwargs["ssl_certfile"] = a.ssl_certfile
+    uvicorn.run(app, **kwargs)
 
 
 if __name__ == "__main__":

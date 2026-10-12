@@ -13,6 +13,13 @@ coverage.xml
 htmlcov/
 junit*.xml
 
+# secrets and platform runtime state - never commit (API keys, tenant DB, FreeCAD worker homes)
+.env
+.env.*
+!.env.example
+.cemsim/
+e2e-artifacts/
+
 # local runs / scratch
 scratch_*
 *.log

@@ -47,7 +47,7 @@ async def main():
         errors = []
         pg.on("pageerror", lambda e: errors.append(str(e)))
         pg.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
-        await pg.goto(f"http://{BASE}/")
+        await pg.goto(f"http://{BASE}/hmi")
         await pg.wait_for_timeout(2500)
 
         # --- live values rendered --------------------------------------------

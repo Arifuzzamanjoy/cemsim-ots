@@ -681,6 +681,7 @@ function init() {
   $$("#nav button, .trainerbtn").forEach(b => { if (b.dataset.screen) b.onclick = () => show(b.dataset.screen); });
   const open3d = () => window.open("/3d", "cemsim3d");
   $("#open3d").onclick = open3d; $("#nav3d").onclick = open3d;
+  $("#navStudio").onclick = () => { location.href = "/"; };
   const toggle = () => cmd({ type: "run", on: !(S && S.running) });
   $("#btn-run").onclick = toggle; $("#btn-run2").onclick = toggle;
   $("#speed").onchange = (e) => cmd({ type: "speed", value: parseFloat(e.target.value) });

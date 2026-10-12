@@ -1,0 +1,12 @@
+.git
+.venv
+.cemsim
+.env
+.env.*
+!.env.example
+**/__pycache__
+.pytest_cache
+.ruff_cache
+e2e-artifacts
+docs/images
+data/snapshots/_*

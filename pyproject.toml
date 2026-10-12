@@ -29,6 +29,10 @@ dependencies = [
     "uvicorn[standard]>=0.29",
 ]
 
+[project.optional-dependencies]
+# Claude as a design-by-prompt provider (Gemini needs no SDK: plain HTTPS)
+ai = ["anthropic>=1.0"]
+
 [project.urls]
 Homepage = "https://github.com/Arifuzzamanjoy/cemsim-ots"
 Issues = "https://github.com/Arifuzzamanjoy/cemsim-ots/issues"
@@ -60,7 +64,8 @@ packages = ["cemsim"]
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-extend-exclude = ["cemsim/web/vendor"]
+extend-exclude = ["cemsim/web/vendor", "third_party"]
+force-exclude = true  # also honoured when pre-commit passes files explicitly
 
 [tool.ruff.lint]
 select = [
@@ -102,10 +107,14 @@ testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra --strict-markers"
 filterwarnings = ["ignore::RuntimeWarning"]
+markers = [
+    "freecad: needs a real FreeCAD GUI + the FreeCAD-MCP addon (opt-in: pytest -m freecad tests/integration)",
+    "llm: calls a real model API with your key and spends credits (opt-in: pytest -m llm)",
+]
 
 [tool.coverage.run]
 source = ["cemsim"]
-omit = ["cemsim/freecad_bridge.py"]
+omit = ["cemsim/freecad_bridge.py", "cemsim/freecad_worker.py"]  # exercised by the opt-in real-FreeCAD suite
 
 [tool.coverage.report]
 skip_empty = true

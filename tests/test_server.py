@@ -21,7 +21,9 @@ def cmd(client, **c):
 
 
 def test_pages_and_static_assets(client):
-    assert "CemSim" in client.get("/").text
+    assert "Studio" in client.get("/").text, "the Design Studio is the main page"
+    assert "Kiln Line" in client.get("/hmi").text, "the operator HMI lives at /hmi"
+    assert client.get("/design").text == client.get("/").text
     assert "importmap" in client.get("/3d").text
     r = client.get("/static/assets/plant3d.json", headers={"Accept-Encoding": "gzip"})
     assert r.status_code == 200 and r.headers.get("content-encoding") == "gzip"
