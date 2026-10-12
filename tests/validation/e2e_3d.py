@@ -87,22 +87,34 @@ async def main():
             f"max channel error {max(res)} over 4 segments",
         )
 
-        a0 = await pg.evaluate("PLANT3D.kilnAngle()")
-        await pg.wait_for_timeout(2000)
-        a1 = await pg.evaluate("PLANT3D.kilnAngle()")
+        # Rotation: the page integrates angle per rendered frame, so sample angle *and* time at frame
+        # granularity and compare rates over a window long enough that one slow frame (software GL on a
+        # shared runner can render ~1 fps) is a small share of it.
+        sample = "({a: PLANT3D.kilnAngle(), t: performance.now() / 1000})"
+        s0 = await pg.evaluate(sample)
+        await pg.wait_for_timeout(6000)
+        s1 = await pg.evaluate(sample)
         rpm = json.loads(urllib.request.urlopen(f"http://{BASE}/api/trend?tags=kiln_rpm&minutes=1").read())["kiln_rpm"][
             -1
         ]
-        expect = rpm / 60 * 2 * 3.14159 * 2.0
+        expect = rpm / 60 * 2 * 3.14159 * (s1["t"] - s0["t"])  # speed is 1 cycle/s
+        # upper bound: never faster than the live speed.  Lower bound is loose on purpose: the page clamps its
+        # per-frame time step to 2 s, so on a starved renderer the angle legitimately lags wall-clock time.
         check(
             "kiln rotates at the live kiln speed",
-            0.6 * expect < (a1 - a0) < 1.5 * expect,
-            f"{a1 - a0:.3f} rad in 2 s, expected ~{expect:.3f}",
+            0.3 * expect < (s1["a"] - s0["a"]) < 1.5 * expect,
+            f"{s1['a'] - s0['a']:.3f} rad in {s1['t'] - s0['t']:.1f} s, expected ~{expect:.3f}",
         )
 
         # x-ray: flame visible with the model's flame length
         await pg.click("#t-xray")
-        await pg.wait_for_timeout(1200)
+        # the flame scale is applied by the animation loop after the next status message: wait for it
+        # (bounded) instead of sleeping a fixed time, so a slow software-GL runner cannot read the
+        # initial scale of 1.0
+        try:
+            await pg.wait_for_function("PLANT3D.flameLen() > 2", timeout=25000)
+        except Exception:
+            pass
         fl = await pg.evaluate("PLANT3D.flameLen()")
         flm = json.loads(urllib.request.urlopen(f"http://{BASE}/api/trend?tags=flame_len_m&minutes=1").read())[
             "flame_len_m"
@@ -163,8 +175,10 @@ async def main():
         await hmi.wait_for_timeout(1500)
         fc = await hmi.inner_html("#fc-box")
         check("production HMI shows no FreeCAD controls", fc.strip() == "", fc[:40])
-        async with hmi.expect_popup() as pop:
-            await hmi.click("#open3d")
+        # the click only has to *fire*: do not let it wait for the popup's navigation (a second WebGL
+        # page in software GL can take well over the default 30 s on a loaded runner)
+        async with hmi.expect_popup(timeout=90000) as pop:
+            await hmi.click("#open3d", no_wait_after=True)
         page3d = await pop.value
         await page3d.wait_for_function("window.PLANT3D && window.PLANT3D.ready", timeout=60000)
         check("HMI '3D plant' button opens the live 3-D page", page3d.url.endswith("/3d"), page3d.url)

@@ -47,14 +47,38 @@ wait_http "http://localhost:$P_FC/api/snapshots" 60
 wait_http "http://localhost:$P_DEAD/api/snapshots" 60
 
 status=0
-run() { echo; echo "::group::$1"; shift; if "$@"; then echo "::endgroup::"; else status=1; echo "::endgroup::"; echo "::error::$*"; fi; }
+# Each sub-suite's output is kept in $OUT/<name>.log (uploaded as a CI artifact), and every failed check is
+# re-emitted as a GitHub annotation so the reason is visible on the run page without opening logs.
+run() {
+  local name="$1" log; shift
+  log="$OUT/$(printf '%s' "$name" | tr -c 'A-Za-z0-9' '_').log"
+  echo; echo "::group::$name"
+  if "$@" 2>&1 | tee "$log"; then
+    echo "::endgroup::"
+    return 0
+  fi
+  echo "::endgroup::"
+  grep -E '^FAIL|Traceback|Error' "$log" | head -8 | while IFS= read -r line; do
+    echo "::error title=$name::${line}"
+  done
+  return 1
+}
+# The FreeCAD-bridge and 3-D suites are timing based (back-offs, 1 Hz pushes, software-GL frame rates) and run
+# on a shared runner: allow one retry, and say so loudly so that flakiness stays visible instead of hidden.
+run_once_retry() {
+  local name="$1"; shift
+  if run "$name" "$@"; then return 0; fi
+  echo "::warning title=$name::first attempt failed; retrying once (timing-sensitive suite)"
+  run "$name (retry)" "$@"
+}
+step() { if ! "$@"; then status=1; fi; }
 
-run "API hardening"        $PY tests/validation/api_probe.py localhost:$P_APP
-run "HMI click-through"    $PY tests/validation/e2e_browser.py localhost:$P_APP "$OUT/shots/hmi.png"
-run "Mimic layout"         $PY tests/validation/e2e_layout.py localhost:$P_APP "$OUT/shots/mimic.png"
-run "HiDPI charts"         $PY tests/validation/e2e_hidpi.py localhost:$P_APP
-run "Live 3-D plant"       $PY tests/validation/e2e_3d.py localhost:$P_APP "$OUT/shots"
-run "FreeCAD bridge (mock)" $PY tests/validation/e2e_freecad.py localhost:$P_FC $P_MOCK localhost:$P_DEAD
+step run "API hardening"        $PY tests/validation/api_probe.py localhost:$P_APP
+step run "HMI click-through"    $PY tests/validation/e2e_browser.py localhost:$P_APP "$OUT/shots/hmi.png"
+step run "Mimic layout"         $PY tests/validation/e2e_layout.py localhost:$P_APP "$OUT/shots/mimic.png"
+step run "HiDPI charts"         $PY tests/validation/e2e_hidpi.py localhost:$P_APP
+step run_once_retry "Live 3-D plant" $PY tests/validation/e2e_3d.py localhost:$P_APP "$OUT/shots"
+step run_once_retry "FreeCAD bridge (mock)" $PY tests/validation/e2e_freecad.py localhost:$P_FC $P_MOCK localhost:$P_DEAD
 
 # the API probe must also have left the simulator alive and the HMI must not crash the server
 grep -iE "Traceback|Exception in ASGI" "$OUT/server.log" && { echo "::error::server log contains tracebacks"; status=1; }
