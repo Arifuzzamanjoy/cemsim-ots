@@ -1,0 +1,114 @@
+name: CD
+
+# Continuous deployment: main -> production server, only after CI is green on that exact commit.
+#
+#   push to main  ->  wait for the "CI" workflow on the commit  ->  SSH (restricted key) -> scripts/deploy.sh
+#                     (install deps, test gate, restart, health check, automatic rollback)  ->  public smoke test
+#
+# Manual run (Actions -> CD -> Run workflow) with `ref` = an older commit on main is the rollback button.
+# Setup (secrets, environment, server): docs/DEPLOYMENT.md.  No third-party actions are used on purpose.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".github/ISSUE_TEMPLATE/**"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit to deploy (full SHA, tag or branch). An older commit on main = rollback. Default: the selected ref."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read   # read the CI run of the commit being deployed
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false   # never abort a deploy half way; the next one queues
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    # Settings -> Environments -> production: add "required reviewers" for a manual approval gate and
+    # keep the SSH secrets here (not as repository secrets) so only this job can read them.
+    environment:
+      name: production
+      url: ${{ vars.DEPLOY_URL }}
+    steps:
+      - name: Resolve the commit to deploy
+        id: rev
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF: ${{ inputs.ref || github.sha }}
+        run: |
+          set -euo pipefail
+          sha="$(gh api "repos/${REPO}/commits/${REF}" --jq .sha)"
+          [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || { echo "could not resolve '${REF}' to a commit" >&2; exit 1; }
+          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+          echo "Deploying \`${sha}\`" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Wait for CI to pass on that commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ steps.rev.outputs.sha }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 120); do   # up to 40 minutes: CI starts together with this workflow
+            runs="$(gh run list --repo "${REPO}" --workflow ci.yml --commit "${SHA}" --limit 1 --json status,conclusion)"
+            if [ "$(jq length <<<"${runs}")" -gt 0 ]; then
+              status="$(jq -r '.[0].status' <<<"${runs}")"
+              conclusion="$(jq -r '.[0].conclusion' <<<"${runs}")"
+              echo "CI: ${status} ${conclusion}"
+              if [ "${status}" = "completed" ]; then
+                [ "${conclusion}" = "success" ] && exit 0
+                echo "CI did not succeed on ${SHA} (${conclusion}); not deploying" >&2
+                exit 1
+              fi
+            else
+              echo "CI has not started on ${SHA} yet (${attempt})"
+            fi
+            sleep 20
+          done
+          echo "timed out waiting for CI on ${SHA}" >&2
+          exit 1
+
+      - name: Deploy over SSH (the key can only run scripts/deploy.sh)
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          SHA: ${{ steps.rev.outputs.sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          install -d "${HOME}/.ssh"
+          printf '%s\n' "${DEPLOY_SSH_KEY}" > "${HOME}/.ssh/deploy_key"
+          printf '%s\n' "${DEPLOY_KNOWN_HOSTS}" > "${HOME}/.ssh/known_hosts"
+          # host key is pinned (StrictHostKeyChecking=yes + known_hosts secret): no trust-on-first-use
+          ssh -i "${HOME}/.ssh/deploy_key" -p "${DEPLOY_PORT}" \
+            -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" "deploy ${SHA}"
+
+      - name: Public smoke test
+        if: ${{ vars.DEPLOY_URL != '' }}
+        env:
+          URL: ${{ vars.DEPLOY_URL }}
+        run: |
+          set -euo pipefail
+          for path in / /hmi /api/snapshots; do
+            curl -fsS --retry 6 --retry-delay 5 --retry-all-errors -o /dev/null "${URL%/}${path}"
+            echo "ok ${path}"
+          done
+
+      - name: Remove the key from the runner
+        if: always()
+        run: rm -f "${HOME}/.ssh/deploy_key"

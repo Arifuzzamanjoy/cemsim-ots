@@ -158,6 +158,7 @@ uv run playwright install chromium && bash scripts/ci_e2e.sh   # browser end-to-
 |---|---|
 | **CI** (every push / PR) | ruff lint + format, pre-commit hygiene · pytest on Python 3.11–3.14 (Linux) and 3.13 (Windows, macOS) with coverage · minimum dependency versions · browser end-to-end in headless Chromium (HMI click-through, mimic layout, HiDPI charts, 3-D WebGL page, API hardening, FreeCAD bridge against a mock) · `pip-audit` · wheel build |
 | **FreeCAD integration** (nightly / on demand / PRs touching it) | real FreeCAD 1.1 GUI + vendored addon + upstream `freecad-mcp`: connection and security, MCP server, live-model read-back, design pipeline, fault injection |
+| **CD** (push to `main`, or manual = rollback) | waits for CI to be green on that commit, then deploys over a restricted SSH key with a test gate, health check and automatic rollback: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | **CodeQL** (push / PR / weekly) | security & quality analysis of Python, JavaScript and the workflows |
 | **Nightly validation** | robustness sweep of all disturbances at their extremes (conservation, NaN, bounds, solver convergence) · start-up from hot standby to full production · controlled shutdown |
 | **Dependabot** | weekly updates for `uv.lock` and GitHub Actions |

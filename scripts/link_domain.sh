@@ -48,7 +48,7 @@ if [[ "$ACTION" == "--unlink" ]]; then
     fi
     DOMAIN="$2"
     echo "Unlinking domain $DOMAIN from $CADDY_SNIPPET..."
-    
+
     # Remove block for DOMAIN
     python3 -c "
 import re, sys
