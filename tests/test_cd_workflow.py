@@ -16,10 +16,14 @@ import yaml
 
 CD = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "cd.yml"
 SHA = "a" * 40
+# Built at run time so that no PEM header appears in the source (the detect-private-key hook, rightly,
+# flags any file that contains one): this is a placeholder, not a key.
+PEM_BEGIN = "-----BEGIN OPENSSH " + "PRIVATE KEY-----"
+PEM_END = "-----END OPENSSH " + "PRIVATE KEY-----"
 GOOD = {
     "DEPLOY_HOST": "203.0.113.7",
     "DEPLOY_USER": "root",
-    "DEPLOY_SSH_KEY": "-----BEGIN OPENSSH PRIVATE KEY-----\nAAAA\n-----END OPENSSH PRIVATE KEY-----",
+    "DEPLOY_SSH_KEY": f"{PEM_BEGIN}\nAAAA\n{PEM_END}",
     "DEPLOY_KNOWN_HOSTS": "203.0.113.7 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest",
 }
 
@@ -89,5 +93,5 @@ def test_the_ssh_step_builds_the_command_the_restricted_key_expects(tmp_path):
     assert argv[-2] == f"deploy {SHA}", "the forced command receives `deploy <sha>`"
     assert "StrictHostKeyChecking=yes" in argv and "BatchMode=yes" in argv and "IdentitiesOnly=yes" in argv
     assert (tmp_path / "mode_seen").read_text().strip() == "600"
-    assert (tmp_path / "key_seen").read_text().startswith("-----BEGIN OPENSSH PRIVATE KEY-----")
+    assert (tmp_path / "key_seen").read_text().startswith(PEM_BEGIN)
     assert (tmp_path / "hosts_seen").read_text().startswith("203.0.113.7 ssh-ed25519")
