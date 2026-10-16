@@ -2,6 +2,7 @@
 webhooks, privacy.  Everything runs against a temporary database with fake model / FreeCAD backends."""
 
 import json
+import os
 import sqlite3
 import time
 
@@ -92,7 +93,8 @@ def test_vault_round_trip_binds_context_and_key(tmp_path, monkeypatch):
         Vault.from_env(tmp_path).decrypt(tok, "ws1:p1")
     monkeypatch.delenv("DUOSIM_SECRET_KEY")
     v2 = Vault.from_env(tmp_path)  # generated key file, 0600
-    assert (tmp_path / "secret.key").stat().st_mode & 0o077 == 0
+    if os.name == "posix":  # Windows reports 0o666 for every file: POSIX permission bits do not exist there
+        assert (tmp_path / "secret.key").stat().st_mode & 0o077 == 0
     assert Vault.from_env(tmp_path).decrypt(v2.encrypt("x", "c"), "c") == "x"
 
 
