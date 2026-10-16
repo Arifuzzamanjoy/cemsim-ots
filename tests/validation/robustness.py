@@ -9,9 +9,9 @@ import traceback
 sys.path.insert(0, ".")
 import numpy as np
 
-from cemsim import thermo as th
-from cemsim.sim import Simulator
-from cemsim.trainer import DISTURBANCES
+from duosim import thermo as th
+from duosim.sim import Simulator
+from duosim.trainer import DISTURBANCES
 
 
 def check(sim, tag):

@@ -1,4 +1,4 @@
-/* CemSim live 3-D plant (three.js).
+/* DuoSim live 3-D plant (three.js).
  * Geometry: FreeCAD-designed kiln line (tools/freecad/build_plant3d.py) exported to
  * /static/assets/plant3d.json - no FreeCAD needed at runtime.
  * Live data: the simulator WebSocket status stream (same as the HMI).

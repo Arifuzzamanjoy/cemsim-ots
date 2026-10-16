@@ -1,4 +1,4 @@
-# Contributing to CemSim
+# Contributing to DuoSim
 
 Thanks for helping build an open cement-plant operator training simulator.
 
@@ -7,7 +7,7 @@ Thanks for helping build an open cement-plant operator training simulator.
 ```bash
 uv sync --group dev --group e2e        # Python 3.11 - 3.14
 uv run pre-commit install              # ruff + hygiene hooks on every commit
-uv run python -m cemsim.server         # http://localhost:8000  (3-D plant at /3d)
+uv run python -m duosim.server         # http://localhost:8000  (3-D plant at /3d)
 ```
 
 ## Before you open a pull request
@@ -46,5 +46,5 @@ The simulator is only useful if its physics can be trusted:
 
 The 3-D model is designed in FreeCAD by `tools/freecad/build_plant3d.py`. After changing it,
 run `clashes()` (it must return `[]`), then `export_json(...)`, and copy the result to
-`cemsim/web/assets/plant3d.json`. Live bindings depend on object names (`KilnSegNN`,
+`duosim/web/assets/plant3d.json`. Live bindings depend on object names (`KilnSegNN`,
 `CycS1..5`, `CoolFanN`, ...).

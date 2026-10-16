@@ -1,4 +1,4 @@
-/* CemSim Studio: the platform's main page.
+/* DuoSim Studio: the platform's main page.
  *   Design tab     prompt -> LLM -> validated spec -> FreeCAD build (verified) -> three.js view
  *   Simulators tab gallery of simulator plug-ins (cement kiln = flagship demo) + a generic live console
  * Everything the model or a simulator returns is untrusted text: it is only rendered with textContent. */
@@ -15,8 +15,8 @@ window.DESIGN = STATE; // read by the end-to-end tests
 // is configured on the server; typing one into a browser over plain HTTP would only leak it.
 const KEY_RE = /^cs_[A-Za-z0-9_-]{20,200}$/;
 const store = {
-  get() { try { return sessionStorage.getItem("cemsim_key") || ""; } catch { return ""; } },
-  set(v) { try { v ? sessionStorage.setItem("cemsim_key", v) : sessionStorage.removeItem("cemsim_key"); } catch { /* private mode */ } },
+  get() { try { return sessionStorage.getItem("duosim_key") || ""; } catch { return ""; } },
+  set(v) { try { v ? sessionStorage.setItem("duosim_key", v) : sessionStorage.removeItem("duosim_key"); } catch { /* private mode */ } },
 };
 let KEY = "";
 function acceptKey(v, { quiet = false } = {}) {

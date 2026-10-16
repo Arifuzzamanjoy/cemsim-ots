@@ -20,7 +20,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-KEY_PREFIX = "cs_"
+KEY_PREFIX = "ds_"
+LEGACY_KEY_PREFIXES = ("cs_",)  # keys issued before the DuoSim rename stay valid
 ID_RE = re.compile(r"^[0-9a-f]{16}$")  # design ids are server-generated hex
 DESIGN_ARTIFACTS = {
     "mesh": "mesh.json",
@@ -60,7 +61,7 @@ class Workspace:
 
 
 def data_dir() -> Path:
-    return Path(os.environ.get("CEMSIM_DATA_DIR") or Path.cwd() / ".cemsim")
+    return Path(os.environ.get("DUOSIM_DATA_DIR") or Path.cwd() / ".duosim")
 
 
 def hash_key(key: str) -> str:
@@ -113,7 +114,7 @@ class Store:
             return c.execute("UPDATE api_keys SET revoked=1 WHERE id=?", (key_id,)).rowcount > 0
 
     def authenticate(self, key: str | None) -> Workspace | None:
-        if not key or not key.startswith(KEY_PREFIX) or len(key) > 200:
+        if not key or not key.startswith((KEY_PREFIX, *LEGACY_KEY_PREFIXES)) or len(key) > 200:
             return None
         with self._conn() as c:
             row = c.execute(

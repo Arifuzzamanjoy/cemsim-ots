@@ -26,7 +26,7 @@ from .spec import AXES, Part, Spec, analytic_centroid, analytic_volume
 VOL_REL_TOL = 1e-6
 CENTROID_TOL_M = 1e-3  # 1 mm
 MM = 1000.0
-log = logging.getLogger("cemsim.design")
+log = logging.getLogger("duosim.design")
 
 
 # --------------------------------------------------------------------------- script generation
@@ -121,7 +121,7 @@ _EXPORT = """\
 import FreeCAD as App, Part, json, base64, zlib, os, tempfile, shutil
 _doc = App.getDocument({doc!r})
 _objs = [o for o in _doc.Objects if hasattr(o, "Shape")]
-_tmp = tempfile.mkdtemp(prefix="cemsim-export-")
+_tmp = tempfile.mkdtemp(prefix="duosim-export-")
 _out = {{}}
 def _b64(path):
     with open(path, "rb") as fh:

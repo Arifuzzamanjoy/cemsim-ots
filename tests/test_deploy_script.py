@@ -91,11 +91,11 @@ class Rig:
         e = {
             **os.environ,
             "PATH": f"{self.bin}{os.pathsep}{os.environ['PATH']}",
-            "CEMSIM_DEPLOY_SYNC_CMD": "true",
-            "CEMSIM_DEPLOY_TEST_CMD": "test ! -e TESTFAIL",
-            "CEMSIM_UNITS": "worker.service app.service",
-            "CEMSIM_HEALTH_URLS": self.url,
-            "CEMSIM_HEALTH_TIMEOUT": "4",
+            "DUOSIM_DEPLOY_SYNC_CMD": "true",
+            "DUOSIM_DEPLOY_TEST_CMD": "test ! -e TESTFAIL",
+            "DUOSIM_UNITS": "worker.service app.service",
+            "DUOSIM_HEALTH_URLS": self.url,
+            "DUOSIM_HEALTH_TIMEOUT": "4",
             **env,
         }
         r = subprocess.run(
@@ -115,7 +115,7 @@ class Rig:
         )
 
     def history(self):
-        p = self.work / ".cemsim" / "deploy" / "history.log"
+        p = self.work / ".duosim" / "deploy" / "history.log"
         return p.read_text() if p.exists() else ""
 
 
@@ -134,7 +134,7 @@ def test_deploys_a_commit_restarts_in_order_and_records_it(rig):
     assert rig.head() == b and (rig.work / "VERSION").read_text() == "B"
     assert rig.restarts() == ["worker.service", "app.service"], "the FreeCAD worker restarts before the app"
     assert "OK" in rig.history()
-    assert (rig.work / ".cemsim/deploy/previous").read_text().strip() == a
+    assert (rig.work / ".duosim/deploy/previous").read_text().strip() == a
 
 
 @pytest.mark.parametrize(

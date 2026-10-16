@@ -67,7 +67,7 @@ def test_the_exact_failure_seen_in_production_every_secret_empty(tmp_path):
 
 def test_shape_mistakes_are_caught(tmp_path):
     check = step("Check the deployment configuration")["run"]
-    pub = run(check, {**GOOD, "DEPLOY_SSH_KEY": "ssh-ed25519 AAAA cemsim-cd"}, tmp_path)
+    pub = run(check, {**GOOD, "DEPLOY_SSH_KEY": "ssh-ed25519 AAAA duosim-cd"}, tmp_path)
     assert pub.returncode == 1 and "not a private key" in pub.stdout
     wrong = run(check, {**GOOD, "DEPLOY_KNOWN_HOSTS": "198.51.100.1 ssh-ed25519 AAAA"}, tmp_path)
     assert wrong.returncode == 1 and "does not mention DEPLOY_HOST" in wrong.stdout

@@ -10,7 +10,7 @@ push to main ──► CD starts ────────────┘
           1. only a full commit hash that is on origin/main is accepted
           2. refuses a dirty working tree; one deploy at a time (flock)
           3. uv sync --frozen, then a fast test gate  ── fails here: nothing was restarted
-          4. restart cemsim-freecad, then cemsim; health-check
+          4. restart duosim-freecad, then duosim; health-check
           5. unhealthy? ── automatic rollback to the previous commit and exit 1
                  │
                  ▼
@@ -48,8 +48,8 @@ CD never re-runs those checks, it only refuses to ship a commit CI did not pass.
 
 ```bash
 # 1. A deploy key that can run exactly one script (generate it anywhere, keep only the public half here)
-ssh-keygen -t ed25519 -N '' -C cemsim-cd -f ./cemsim_cd          # paste ./cemsim_cd into DEPLOY_SSH_KEY, then delete it
-echo "restrict,command=\"/home/ubuntu/SIM/cemsim-ots/scripts/deploy.sh\" $(cat ./cemsim_cd.pub)" \
+ssh-keygen -t ed25519 -N '' -C duosim-cd -f ./duosim_cd          # paste ./duosim_cd into DEPLOY_SSH_KEY, then delete it
+echo "restrict,command=\"/home/ubuntu/SIM/cemsim-ots/scripts/deploy.sh\" $(cat ./duosim_cd.pub)" \
   >> /home/ubuntu/.ssh/authorized_keys       # `restrict` = no shell, no forwarding, no pty
 
 # 2. DEPLOY_KNOWN_HOSTS: take it from the server itself, not from the network
@@ -57,25 +57,25 @@ ssh-keyscan -t ed25519 169.58.162.158        # compare the fingerprint with: ssh
 
 # 3. Run the services as an unprivileged user (they currently run as root from a root-owned checkout)
 sudo chown -R ubuntu:ubuntu /home/ubuntu/SIM/cemsim-ots
-sudo install -d -m 0750 -o root -g ubuntu /etc/cemsim
-python3 -c "import secrets; print(secrets.token_urlsafe(32))" | sudo tee /etc/cemsim/freecad_token >/dev/null
-sudo chmod 0640 /etc/cemsim/freecad_token && sudo chgrp ubuntu /etc/cemsim/freecad_token
-sudo tee /etc/cemsim/cemsim.env >/dev/null <<'ENV'
+sudo install -d -m 0750 -o root -g ubuntu /etc/duosim
+python3 -c "import secrets; print(secrets.token_urlsafe(32))" | sudo tee /etc/duosim/freecad_token >/dev/null
+sudo chmod 0640 /etc/duosim/freecad_token && sudo chgrp ubuntu /etc/duosim/freecad_token
+sudo tee /etc/duosim/duosim.env >/dev/null <<'ENV'
 GEMINI_API_KEY=...
-CEMSIM_PUBLIC_DEMO=1
+DUOSIM_PUBLIC_DEMO=1
 ENV
-sudo chmod 0640 /etc/cemsim/cemsim.env && sudo chgrp ubuntu /etc/cemsim/cemsim.env
+sudo chmod 0640 /etc/duosim/duosim.env && sudo chgrp ubuntu /etc/duosim/duosim.env
 
 # 4. systemd units (the app unit keeps port 8000, so Caddy / link_domain.sh need no change)
-sudo cp deploy/systemd/cemsim-freecad.service deploy/systemd/cemsim.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now cemsim-freecad cemsim
+sudo cp deploy/systemd/duosim-freecad.service deploy/systemd/duosim.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now duosim-freecad duosim
 
 # 5. let the deploy user restart exactly these units (nothing else)
-sudo tee /etc/sudoers.d/cemsim-deploy >/dev/null <<'SUDO'
-ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart cemsim.service, /usr/bin/systemctl restart cemsim-freecad.service, \
-                           /usr/bin/systemctl cat cemsim.service, /usr/bin/systemctl cat cemsim-freecad.service
+sudo tee /etc/sudoers.d/duosim-deploy >/dev/null <<'SUDO'
+ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart duosim.service, /usr/bin/systemctl restart duosim-freecad.service, \
+                           /usr/bin/systemctl cat duosim.service, /usr/bin/systemctl cat duosim-freecad.service
 SUDO
-sudo visudo -cf /etc/sudoers.d/cemsim-deploy
+sudo visudo -cf /etc/sudoers.d/duosim-deploy
 
 # 6. a private repository needs read access for `git fetch` on the server (a read-only deploy key or token)
 ```
@@ -99,12 +99,12 @@ The commands above assume an `ubuntu` deploy user. With root, the differences ar
 
 * **Gives you**: no deploy of a commit CI rejected or that is off `main`; no shell for the deploy key; no
   overwritten local edits; a test gate before any restart; automatic rollback on a failed health check; one
-  deploy at a time; a history in `.cemsim/deploy/history.log`.
+  deploy at a time; a history in `.duosim/deploy/history.log`.
 * **Does not**: zero downtime (a restart takes a few seconds; the FreeCAD worker ~10 s to be ready), database
   migrations (there are none: the SQLite store creates its tables itself), or blue/green. The checkout is
   updated in place, so for the seconds between checkout and restart the old process serves new static files.
   If that matters, deploy into a new release directory and switch a symlink (a larger change).
-* **Secrets** (`GEMINI_API_KEY`, the FreeCAD token) live only in `/etc/cemsim`, never in the repository, the
+* **Secrets** (`GEMINI_API_KEY`, the FreeCAD token) live only in `/etc/duosim`, never in the repository, the
   workflow or the deploy script.
 
 ## Container alternative

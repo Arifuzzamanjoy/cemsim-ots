@@ -14,12 +14,12 @@ from pathlib import Path
 sys.path.insert(0, ".")
 import json
 
-from cemsim.sim import Simulator
+from duosim.sim import Simulator
 
 hours = float(sys.argv[1]) if len(sys.argv) > 1 else 6
 OUT = sys.argv[3] if len(sys.argv) > 3 else "nominal"
 OVR = json.loads(sys.argv[4]) if len(sys.argv) > 4 else {}
-from cemsim import chemistry
+from duosim import chemistry
 
 for k_, v_ in OVR.get("kin", {}).items():
     chemistry.KIN[k_] = tuple(v_)
@@ -27,7 +27,7 @@ sim = Simulator()
 for k_, v_ in OVR.get("kiln", {}).items():
     setattr(sim.plant.kiln.p, k_, v_)
 try:
-    from cemsim import fileset
+    from duosim import fileset
 
     sim.plant.restore(fileset.load(Path("scratch_state.json")))
 except (FileNotFoundError, OSError):
@@ -38,7 +38,7 @@ BZ_SP, O2K_SP = 1450.0, 3.0
 start = sys.argv[2] if len(sys.argv) > 2 else None
 if start:
     sim.load_file(start)
-    from cemsim.chemistry import RawMix
+    from duosim.chemistry import RawMix
 
     sim.plant.rawmix = RawMix()  # current design raw mix
     sim.dist["rawmix_lsf"] = sim.plant.rawmix.LSF

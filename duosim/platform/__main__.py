@@ -1,8 +1,8 @@
 """Operator CLI for the platform layer.
 
-python -m cemsim.platform keys create --workspace acme --label "ci"   # prints the key once
-python -m cemsim.platform keys revoke <key-id>
-python -m cemsim.platform workspaces
+python -m duosim.platform keys create --workspace acme --label "ci"   # prints the key once
+python -m duosim.platform keys revoke <key-id>
+python -m duosim.platform workspaces
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from .store import Store
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="python -m cemsim.platform")
+    ap = argparse.ArgumentParser(prog="python -m duosim.platform")
     sub = ap.add_subparsers(dest="cmd", required=True)
     k = sub.add_parser("keys").add_subparsers(dest="sub", required=True)
     c = k.add_parser("create")
@@ -72,7 +72,7 @@ def _sim_commands(a) -> int:
         except (ValueError, FileExistsError) as e:
             print(f"error: {e}", file=sys.stderr)
             return 2
-        print(f"created {target}/  - next: python -m cemsim.platform check {a.id} --dir {a.dir}")
+        print(f"created {target}/  - next: python -m duosim.platform check {a.id} --dir {a.dir}")
         return 0
     reg = default_registry()
     if a.cmd == "check" and a.dir:

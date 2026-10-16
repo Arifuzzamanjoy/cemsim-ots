@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from cemsim import fileset, server
-from cemsim.sim import DATA, Simulator
+from duosim import fileset, server
+from duosim.sim import DATA, Simulator
 
 
 @pytest.fixture(scope="module")

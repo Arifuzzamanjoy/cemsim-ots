@@ -4,7 +4,7 @@ import socket
 
 import pytest
 
-from cemsim.freecad_worker import FreeCADWorker, WorkerError
+from duosim.freecad_worker import FreeCADWorker, WorkerError
 
 
 def test_start_refuses_a_port_that_something_else_already_serves():
@@ -21,7 +21,7 @@ def test_start_refuses_a_port_that_something_else_already_serves():
 
 
 def test_remote_workers_cannot_be_started_without_a_token_file(capsys):
-    from cemsim.freecad_worker import main
+    from duosim.freecad_worker import main
 
     assert main(["start", "--remote"]) == 2
     assert "requires --token-file" in capsys.readouterr().err
@@ -29,7 +29,7 @@ def test_remote_workers_cannot_be_started_without_a_token_file(capsys):
 
 def test_stale_recovery_data_is_cleared_inside_the_sandbox_only(tmp_path):
     """FreeCAD's recovery dialog on a persistent home wedged a worker's GUI dispatch."""
-    from cemsim.freecad_worker import clear_stale_recovery
+    from duosim.freecad_worker import clear_stale_recovery
 
     home = tmp_path / "worker"
     stale = home / ".cache" / "FreeCAD" / "v1-1" / "Cache"

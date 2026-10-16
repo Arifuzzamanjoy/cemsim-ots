@@ -18,7 +18,8 @@ from pathlib import Path
 
 import numpy as np
 
-FORMAT = "cemsim-fileset/1"
+FORMAT = "duosim-fileset/1"
+LEGACY_FORMATS = ("cemsim-fileset/1",)  # files saved before the DuoSim rename load unchanged
 
 
 def encode(o):
@@ -54,7 +55,7 @@ def dump(snapshot: dict, path: Path) -> None:
 def load(path: Path) -> dict:
     with open(path, encoding="utf-8") as fh:
         doc = json.load(fh)
-    if doc.get("format") != FORMAT:
+    if doc.get("format") not in (FORMAT, *LEGACY_FORMATS):
         raise ValueError(f"{path.name}: not a {FORMAT} file")
     return decode(doc["state"])
 

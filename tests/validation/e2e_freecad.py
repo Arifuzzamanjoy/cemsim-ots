@@ -1,6 +1,6 @@
 """E2E test of the FreeCAD 3D buttons (build / live on / off) against the mock RPC server.
 
-Usage: python tests/validation/e2e_freecad.py <cemsim host:port> <mock port> [<cemsim with dead freecad host:port>]
+Usage: python tests/validation/e2e_freecad.py <duosim host:port> <mock port> [<duosim with dead freecad host:port>]
 """
 
 import asyncio
@@ -128,7 +128,7 @@ async def main():
         check("no page errors", not errors, "; ".join(errors[:3]))
         await b.close()
 
-        # 6. FreeCAD not running at all (second CemSim pointed at a dead port)
+        # 6. FreeCAD not running at all (second DuoSim pointed at a dead port)
         if DEAD:
             b = await p.chromium.launch()
             pg = await b.new_page()

@@ -1,16 +1,16 @@
-# CemSim platform: app + one FreeCAD worker.
+# DuoSim platform: app + one FreeCAD worker.
 #
-#   mkdir -p .cemsim && python3 -c "import secrets; print(secrets.token_urlsafe(32))" > .cemsim/freecad_token
+#   mkdir -p .duosim && python3 -c "import secrets; print(secrets.token_urlsafe(32))" > .duosim/freecad_token
 #   cp .env.example .env            # add GEMINI_API_KEY and/or ANTHROPIC_API_KEY
 #   docker compose up --build
-#   docker compose exec app python -m cemsim.platform keys create --workspace acme   # your API key
+#   docker compose exec app python -m duosim.platform keys create --workspace acme   # your API key
 #
 # Open http://localhost:8000/design (HMI at /, 3-D plant at /3d).
 # Scale FreeCAD by adding more `freecad` services; one worker = one FreeCAD session.
 services:
   freecad:
     build: { context: ., dockerfile: deploy/freecad-worker.Dockerfile }
-    image: cemsim-freecad
+    image: duosim-freecad
     secrets: [freecad_token]
     shm_size: "1gb"            # Qt / Mesa shared memory
     mem_limit: 2g              # a GUI worker is ~0.7 GB resident; designs add to it
@@ -19,17 +19,17 @@ services:
 
   app:
     build: { context: ., dockerfile: deploy/app.Dockerfile }
-    image: cemsim-app
+    image: duosim-app
     depends_on:
       freecad: { condition: service_healthy }
     env_file: [.env]
     environment:
-      CEMSIM_FREECAD_URL: freecad:9875
+      DUOSIM_FREECAD_URL: freecad:9875
       FREECAD_MCP_TOKEN_FILE: /run/secrets/freecad_token
-      CEMSIM_DATA_DIR: /data
+      DUOSIM_DATA_DIR: /data
     secrets: [freecad_token]
-    volumes: [cemsim-data:/data]
-    ports: ["${CEMSIM_PORT:-8000}:8000"]
+    volumes: [duosim-data:/data]
+    ports: ["${DUOSIM_PORT:-8000}:8000"]
     restart: unless-stopped
     networks: [backend, default]
 
@@ -37,7 +37,7 @@ networks:
   backend: { internal: true }   # no route to the internet: FreeCAD runs model-influenced geometry only
 
 secrets:
-  freecad_token: { file: ./.cemsim/freecad_token }
+  freecad_token: { file: ./.duosim/freecad_token }
 
 volumes:
-  cemsim-data:
+  duosim-data:

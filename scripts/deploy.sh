@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CemSim server-side deploy.  Run by the CD workflow over SSH (as the key's forced command) or by hand:
+# DuoSim server-side deploy.  Run by the CD workflow over SSH (as the key's forced command) or by hand:
 #
 #     scripts/deploy.sh deploy <40-hex-commit>   move to that commit, verify, restart, health-check
 #     scripts/deploy.sh rollback                 return to the previously deployed commit
@@ -17,15 +17,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-STATE="${CEMSIM_DEPLOY_STATE:-$ROOT/.cemsim/deploy}"
-BRANCH="${CEMSIM_DEPLOY_BRANCH:-main}"
-REMOTE="${CEMSIM_DEPLOY_REMOTE:-origin}"
+STATE="${DUOSIM_DEPLOY_STATE:-$ROOT/.duosim/deploy}"
+BRANCH="${DUOSIM_DEPLOY_BRANCH:-main}"
+REMOTE="${DUOSIM_DEPLOY_REMOTE:-origin}"
 # restart order matters: the FreeCAD worker first, then the app that talks to it
-UNITS="${CEMSIM_UNITS:-cemsim-freecad.service cemsim.service}"
-SYNC_CMD="${CEMSIM_DEPLOY_SYNC_CMD:-uv sync --frozen --extra ai}"
-TEST_CMD="${CEMSIM_DEPLOY_TEST_CMD:-.venv/bin/python -m pytest -q -x -p no:cacheprovider tests/test_design_spec.py tests/test_design_llm.py tests/test_api_design.py tests/test_platform.py tests/test_server.py}"
-HEALTH_URLS="${CEMSIM_HEALTH_URLS:-http://127.0.0.1:8000/api/snapshots}"
-HEALTH_TIMEOUT="${CEMSIM_HEALTH_TIMEOUT:-90}"
+UNITS="${DUOSIM_UNITS:-duosim-freecad.service duosim.service}"
+SYNC_CMD="${DUOSIM_DEPLOY_SYNC_CMD:-uv sync --frozen --extra ai}"
+TEST_CMD="${DUOSIM_DEPLOY_TEST_CMD:-.venv/bin/python -m pytest -q -x -p no:cacheprovider tests/test_design_spec.py tests/test_design_llm.py tests/test_api_design.py tests/test_platform.py tests/test_server.py}"
+HEALTH_URLS="${DUOSIM_HEALTH_URLS:-http://127.0.0.1:8000/api/snapshots}"
+HEALTH_TIMEOUT="${DUOSIM_HEALTH_TIMEOUT:-90}"
 
 log() { printf '%s deploy: %s\n' "$(date -u +%FT%TZ)" "$*"; }
 die() { log "ERROR: $*" >&2; exit "${2:-1}"; }

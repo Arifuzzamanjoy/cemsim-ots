@@ -2,7 +2,7 @@
 
 The language model never writes code.  It writes *this* JSON; `parse_spec` turns anything that
 is not exactly this shape into a list of precise error messages (which are fed back to the
-model for one repair round), and `cemsim.design.builder` turns the validated numbers into
+model for one repair round), and `duosim.design.builder` turns the validated numbers into
 FreeCAD calls.  Units: metres in the spec (millimetres in FreeCAD).  Z is up.
 
 Parts

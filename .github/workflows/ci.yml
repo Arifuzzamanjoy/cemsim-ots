@@ -156,8 +156,8 @@ jobs:
           import glob, zipfile
           whl = glob.glob("dist/*.whl")[0]
           names = set(zipfile.ZipFile(whl).namelist())
-          need = ["cemsim/web/index.html", "cemsim/web/plant3d.js", "cemsim/web/assets/plant3d.json",
-                  "cemsim/web/vendor/three.module.min.js"]
+          need = ["duosim/web/index.html", "duosim/web/plant3d.js", "duosim/web/assets/plant3d.json",
+                  "duosim/web/vendor/three.module.min.js"]
           missing = [n for n in need if n not in names]
           assert not missing, missing
           print(whl, "ok,", len(names), "files")

@@ -1,6 +1,6 @@
 """Thermodynamic property data for all species in the simulator.
 
-Convention (used everywhere in cemsim):
+Convention (used everywhere in duosim):
   amount  : kmol          flow   : kmol/s
   enthalpy: kJ/kmol       energy : kJ          power: kW
   T       : K             p      : Pa (gauge unless stated)

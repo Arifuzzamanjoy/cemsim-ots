@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-log = logging.getLogger("cemsim.design.llm")
+log = logging.getLogger("duosim.design.llm")
 
 # `gemini-flash-latest` tracks the current Flash; the pinned model is tried if it is unavailable/overloaded.
 # (gemini-2.5-* answers 404 "no longer available to new users"; Pro models need a paid quota.)
@@ -113,12 +113,12 @@ class GeminiProvider:
         thinking: str | None = None,
     ):
         # Design JSON from a structured prompt does not need deep reasoning, and thinking tokens are
-        # latency a user waits for. "low" is the default; CEMSIM_GEMINI_THINKING=default leaves it to
+        # latency a user waits for. "low" is the default; DUOSIM_GEMINI_THINKING=default leaves it to
         # the model. Models that do not know thinkingLevel (2.x) answer 400: we then drop it and retry.
-        level = thinking if thinking is not None else os.environ.get("CEMSIM_GEMINI_THINKING", "low")
+        level = thinking if thinking is not None else os.environ.get("DUOSIM_GEMINI_THINKING", "low")
         self._thinking = None if level in ("", "default") else {"thinkingLevel": level}
         self._key = api_key
-        self.model = model or os.environ.get("CEMSIM_GEMINI_MODEL") or GEMINI_DEFAULT_MODEL
+        self.model = model or os.environ.get("DUOSIM_GEMINI_MODEL") or GEMINI_DEFAULT_MODEL
         if fallback_models is None:
             fallback_models = GEMINI_FALLBACK_MODELS if model is None else ()
         self._models = [self.model, *[m for m in fallback_models if m != self.model]]
@@ -184,7 +184,7 @@ class GeminiProvider:
             if status in (401, 403):
                 hint = " (check GEMINI_API_KEY)"
             elif status == 404:
-                hint = f" (model {used!r} not available to this key; set CEMSIM_GEMINI_MODEL)"
+                hint = f" (model {used!r} not available to this key; set DUOSIM_GEMINI_MODEL)"
             elif status == 429:
                 hint = " (rate limit / quota)"
             raise LLMError(f"Gemini API HTTP {status}: {msg[:300]}{hint}")
@@ -211,7 +211,7 @@ class GeminiProvider:
 
 # --------------------------------------------------------------------------- Claude
 class ClaudeProvider:
-    """Claude through the official `anthropic` SDK (optional dependency: pip install 'cemsim-ots[ai]').
+    """Claude through the official `anthropic` SDK (optional dependency: pip install 'duosim[ai]').
 
     claude-opus-5-5 rules (see the claude-api reference): thinking is always on (no `thinking`
     parameter), forced `tool_choice` is rejected, so structured JSON comes from
@@ -228,7 +228,7 @@ class ClaudeProvider:
         fallbacks: bool = True,
         effort: str = "medium",
     ):
-        self.model = model or os.environ.get("CEMSIM_CLAUDE_MODEL") or CLAUDE_DEFAULT_MODEL
+        self.model = model or os.environ.get("DUOSIM_CLAUDE_MODEL") or CLAUDE_DEFAULT_MODEL
         self._fallbacks = fallbacks
         self._effort = effort
         self._key = api_key or ""
@@ -239,7 +239,7 @@ class ClaudeProvider:
             try:
                 import anthropic
             except ImportError:
-                raise LLMError("the 'anthropic' package is not installed (pip install 'cemsim-ots[ai]')") from None
+                raise LLMError("the 'anthropic' package is not installed (pip install 'duosim[ai]')") from None
             self._client = anthropic.Anthropic(api_key=self._key or None, max_retries=2)
         return self._client
 
@@ -298,5 +298,5 @@ def providers_from_env() -> dict[str, Provider]:
         out["gemini"] = GeminiProvider(gk)
     ak = os.environ.get("ANTHROPIC_API_KEY")
     if ak:
-        out["claude"] = ClaudeProvider(ak, fallbacks=os.environ.get("CEMSIM_CLAUDE_FALLBACKS", "1") != "0")
+        out["claude"] = ClaudeProvider(ak, fallbacks=os.environ.get("DUOSIM_CLAUDE_FALLBACKS", "1") != "0")
     return out

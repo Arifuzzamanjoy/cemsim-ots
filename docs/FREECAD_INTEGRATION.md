@@ -1,6 +1,6 @@
-# FreeCAD ↔ FreeCAD-MCP ↔ CemSim: integration and validation
+# FreeCAD ↔ FreeCAD-MCP ↔ DuoSim: integration and validation
 
-This is how CemSim talks to [FreeCAD](https://github.com/FreeCAD/FreeCAD) through the
+This is how DuoSim talks to [FreeCAD](https://github.com/FreeCAD/FreeCAD) through the
 [freecad-mcp](https://github.com/neka-nat/freecad-mcp) addon, what was verified against the
 *real* programs, and what to know before running it in production.
 
@@ -15,16 +15,16 @@ This is how CemSim talks to [FreeCAD](https://github.com/FreeCAD/FreeCAD) throug
         ▼                               │ XML-RPC                  │ XML-RPC                    │ XML-RPC
   freecad-mcp (PyPI 0.1.26,       FreeCADBridge              DesignBuilder                  FreeCADWorker
   port 9875 hard-coded)           live kiln model            spec → solids → verified       starts/stops the above
-        │                         (cemsim/freecad_bridge)    (cemsim/design/builder)        (cemsim/freecad_worker)
+        │                         (duosim/freecad_bridge)    (duosim/design/builder)        (duosim/freecad_worker)
         └─ same FreeCAD session ──────────┴───────────────────────────┴──────────────────────────┘
 ```
 
 | Component | File | Role |
 |---|---|---|
-| `FreeCADClient` | `cemsim/freecad_bridge.py` | Authenticated XML-RPC client, protocol/version handshake, `diagnose()`, screenshots |
-| `FreeCADBridge` | `cemsim/freecad_bridge.py` | The live kiln model: build once, push simulator state ~1 Hz, `readback()` to measure it |
-| `FreeCADWorker` | `cemsim/freecad_worker.py` | Starts FreeCAD + Xvfb in a sandboxed `HOME` with the addon, token and port |
-| `DesignBuilder` | `cemsim/design/builder.py` | Validated spec → FreeCAD geometry → measured against closed-form values |
+| `FreeCADClient` | `duosim/freecad_bridge.py` | Authenticated XML-RPC client, protocol/version handshake, `diagnose()`, screenshots |
+| `FreeCADBridge` | `duosim/freecad_bridge.py` | The live kiln model: build once, push simulator state ~1 Hz, `readback()` to measure it |
+| `FreeCADWorker` | `duosim/freecad_worker.py` | Starts FreeCAD + Xvfb in a sandboxed `HOME` with the addon, token and port |
+| `DesignBuilder` | `duosim/design/builder.py` | Validated spec → FreeCAD geometry → measured against closed-form values |
 | addon | `third_party/freecad-mcp/` | Vendored unmodified (MIT), pinned commit, see `PROVENANCE.md` |
 
 ### What the addon needs (verified, not assumed)
@@ -34,11 +34,11 @@ This is how CemSim talks to [FreeCAD](https://github.com/FreeCAD/FreeCAD) throug
   `get_active_screenshot` work. `FreeCADWorker` does exactly this (≈10 s to ready, ≈0.6–0.7 GB RSS each).
 * **A fixed port in the upstream MCP server.** `freecad-mcp` 0.1.26 hard-codes `port=9875`
   (`server.py: FreeCADConnection(host=..., port=9875)`, no `--port`). Its leg can therefore only reach a worker on
-  9875 — run one worker per container, or tunnel. CemSim's own client accepts any port.
+  9875 — run one worker per container, or tunnel. DuoSim's own client accepts any port.
 * **The addon's auto-start is also 9875 only.** `FreeCADWorker` starts the server from a startup macro on the
   port you choose, so several workers can share a host (used by the fault-injection tests).
 * **A token for anything non-local.** The RPC endpoint executes arbitrary Python (`execute_code`). The addon
-  supports `Authorization: Bearer <token>`; CemSim sends it from `FREECAD_MCP_TOKEN` /
+  supports `Authorization: Bearer <token>`; DuoSim sends it from `FREECAD_MCP_TOKEN` /
   `FREECAD_MCP_TOKEN_FILE` / `--freecad-token`. `FreeCADWorker --remote` refuses to start without one.
   The addon also rejects any request carrying an `Origin` header (a web page cannot call it) and, when bound to
   loopback, any non-localhost `Host`.
@@ -53,7 +53,7 @@ protocol and through the real upstream MCP server. **No mocks.** 59 tests (+1 op
 | Suite | Checks |
 |---|---|
 | `test_01_connection` (11) | real GUI FreeCAD ≥ 1.0, code runs on the GUI/main thread; addon version = vendored copy = `EXPECTED_PROTOCOL_VERSION`; token enforced (none / wrong → 401, secret never echoed); `Origin` → 403, rebinding `Host` → 403, wrong content-type → 415; Python errors returned as errors and the GUI survives; shared script namespace; exact OCCT volumes; screenshots show geometry (with an empty-document negative control) |
-| `test_02_mcp_server` (9) | upstream `freecad-mcp==0.1.26` over stdio: handshake, tool catalogue, no version warning; **cross-tool consistency**: geometry created through MCP is measured identically by CemSim's client and vice-versa (volume vs π·r²·h), edits visible both ways, shared namespace, PNG from `get_view` |
+| `test_02_mcp_server` (9) | upstream `freecad-mcp==0.1.26` over stdio: handshake, tool catalogue, no version warning; **cross-tool consistency**: geometry created through MCP is measured identically by DuoSim's client and vice-versa (volume vs π·r²·h), edits visible both ways, shared namespace, PNG from `get_view` |
 | `test_03_live_bridge` (8) | after pushing real simulator states, FreeCAD is **read back** and compared: 30 shell-scanner colours, 5 cyclone + calciner colours, 18 clinker-bed heights and colours, flame cone length (mm), kiln rotation angle = ∫rpm·dt, drive colours; a disturbance (coal LHV drop + ID-fan trip) changes the model and the rendered view; a lost document is rebuilt automatically; the HMI command `POST /api/cmd freecad build` drives the whole chain |
 | `test_04_plant_design` (4) | `tools/freecad/build_plant3d.py` in real FreeCAD: 149 parts, 0 clashes, regenerated mesh equals the committed `plant3d.json` (vertex sets and surface areas, 149/149), binding names present |
 | `test_05_resilience` (2) | `SIGKILL` FreeCAD → clear "not reachable", restart → recovers and rebuilds; status stays responsive while the GUI thread is busy |
@@ -66,8 +66,8 @@ echo "f6dc6ba676e5ac96a565ebc8d657232f94c6158e85b4352141bd1a46f6b43434  fc.AppIm
 chmod +x fc.AppImage && ./fc.AppImage --appimage-extract && mv squashfs-root /opt/freecad-1.1.4
 sudo apt install xvfb libgl1-mesa-dri libxcb-cursor0 ...     # see .github/workflows/freecad-integration.yml
 
-CEMSIM_FREECAD=/opt/freecad-1.1.4 uv run pytest -m "freecad and not llm" tests/integration -v   # ~3 min
-CEMSIM_FREECAD=/opt/freecad-1.1.4 uv run pytest -m "freecad and llm" ...             # +1 live model call
+DUOSIM_FREECAD=/opt/freecad-1.1.4 uv run pytest -m "freecad and not llm" tests/integration -v   # ~3 min
+DUOSIM_FREECAD=/opt/freecad-1.1.4 uv run pytest -m "freecad and llm" ...             # +1 live model call
 ```
 
 The default `pytest` run skips these (hermetic and fast); CI runs them in
@@ -108,10 +108,10 @@ These were invisible while the bridge was only ever tested against a mock writte
 
 ```bash
 # 1. a worker (foreground; prints its URL, writes the token to <home>/rpc_token)
-python -m cemsim.freecad_worker start --port 9875
+python -m duosim.freecad_worker start --port 9875
 
 # 2. the app, pointed at it
-FREECAD_MCP_TOKEN=$(cat .cemsim/freecad-worker/9875/rpc_token) uv run cemsim --freecad 127.0.0.1:9875
+FREECAD_MCP_TOKEN=$(cat .duosim/freecad-worker/9875/rpc_token) uv run duosim --freecad 127.0.0.1:9875
 
 # 3. check the link at any time
 curl localhost:8000/api/freecad/health?deep=true

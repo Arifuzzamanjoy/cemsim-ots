@@ -8,12 +8,12 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-from cemsim import api_design, server
-from cemsim.design.builder import DesignBuilder, verify
-from cemsim.design.llm import LLMResult
-from cemsim.design.service import DesignService
-from cemsim.design.spec import AXES, analytic_volume, parse_spec
-from cemsim.platform.store import Store
+from duosim import api_design, server
+from duosim.design.builder import DesignBuilder, verify
+from duosim.design.llm import LLMResult
+from duosim.design.service import DesignService
+from duosim.design.spec import AXES, analytic_volume, parse_spec
+from duosim.platform.store import Store
 
 from .pngstat import non_background_fraction
 
@@ -142,9 +142,9 @@ def test_design_api_end_to_end_on_a_real_worker(worker, tmp_path, monkeypatch):
     monkeypatch.setattr(api_design, "_SERVICE", DesignService({"scripted": Scripted()}))
     monkeypatch.setattr(api_design, "_ENV_LOADED", True)
     monkeypatch.setattr(api_design, "_BUILDERS", {})
-    monkeypatch.setenv("CEMSIM_FREECAD_URL", f"{worker.host}:{worker.port}")
+    monkeypatch.setenv("DUOSIM_FREECAD_URL", f"{worker.host}:{worker.port}")
     monkeypatch.setenv("FREECAD_MCP_TOKEN", worker.token)
-    monkeypatch.delenv("CEMSIM_DEV_OPEN", raising=False)
+    monkeypatch.delenv("DUOSIM_DEV_OPEN", raising=False)
     key = store.create_api_key(store.workspace("acme"), "t")[1]
     h = {"X-API-Key": key}
     http = TestClient(server.app)
@@ -164,9 +164,9 @@ def test_design_api_end_to_end_on_a_real_worker(worker, tmp_path, monkeypatch):
 @pytest.mark.llm
 def test_live_model_designs_something_that_freecad_verifies(builder):
     """Real model API, real FreeCAD.  Opt-in (spends credits): pytest -m "freecad and llm"."""
-    from cemsim.design.llm import load_dotenv, providers_from_env
+    from duosim.design.llm import load_dotenv, providers_from_env
 
-    load_dotenv(os.environ.get("CEMSIM_ENV_FILE", ".env"))
+    load_dotenv(os.environ.get("DUOSIM_ENV_FILE", ".env"))
     provs = providers_from_env()
     if not provs:
         pytest.skip("no GEMINI_API_KEY / ANTHROPIC_API_KEY configured")
@@ -184,7 +184,7 @@ def test_worst_case_valid_design_builds_well_inside_the_gui_budget(builder):
     budget, because a started GUI task cannot be cancelled."""
     import time
 
-    from cemsim.design.spec import MAX_PARTS, MAX_PATH_POINTS, MAX_TOTAL_PATH_POINTS
+    from duosim.design.spec import MAX_PARTS, MAX_PATH_POINTS, MAX_TOTAL_PATH_POINTS
 
     pipes = [
         {

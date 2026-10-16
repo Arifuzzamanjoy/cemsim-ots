@@ -13,5 +13,5 @@ run from PyPI at the same version (`uvx freecad-mcp==0.1.26`). Keeping both at t
 is what the protocol handshake in `get_rpc_status` checks.
 
 The files are unmodified. To upgrade: replace `addon/FreeCADMCP` from the new tag, update
-this file and `cemsim/freecad_bridge.py::EXPECTED_PROTOCOL_VERSION`, then run
+this file and `duosim/freecad_bridge.py::EXPECTED_PROTOCOL_VERSION`, then run
 `pytest -m freecad` (see `docs/FREECAD_INTEGRATION.md`).

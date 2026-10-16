@@ -4,8 +4,8 @@ import math
 
 import pytest
 
-from cemsim.design.builder import CENTROID_TOL_M, build_script, export_script, verify
-from cemsim.design.spec import (
+from duosim.design.builder import CENTROID_TOL_M, build_script, export_script, verify
+from duosim.design.spec import (
     MAX_PARTS,
     SpecError,
     analytic_centroid,
@@ -188,7 +188,7 @@ def test_verify_catches_wrong_volume_position_validity_and_missing_objects():
 def test_total_pipe_waypoints_are_capped_to_protect_the_shared_worker():
     """Pipes are fused boolean-by-boolean (~0.19 s per waypoint): an uncapped valid design could
     wedge the shared FreeCAD GUI thread for minutes (measured: 792 points > 90 s)."""
-    from cemsim.design.spec import MAX_PATH_POINTS, MAX_TOTAL_PATH_POINTS
+    from duosim.design.spec import MAX_PATH_POINTS, MAX_TOTAL_PATH_POINTS
 
     def pipe(i, n):
         return {"id": f"p{i}", "kind": "pipe", "radius": 0.1, "path": [[k, i, 0] for k in range(n)]}

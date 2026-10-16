@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# CemSim OTS - Domain Linking & SSL Management Tool
+# DuoSim OTS - Domain Linking & SSL Management Tool
 # Links or unlinks a hosting domain with Caddy for automatic Let's Encrypt TLS.
 # ==============================================================================
 
 set -euo pipefail
 
-CADDY_SNIPPET="/etc/caddy/conf.d/cemsim.caddyfile"
+CADDY_SNIPPET="/etc/caddy/conf.d/duosim.caddyfile"
 SERVER_IPV4=$(curl -4 -s --max-time 3 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')
 SERVER_IPV6=$(curl -6 -s --max-time 3 https://api6.ipify.org 2>/dev/null || true)
 
@@ -29,11 +29,11 @@ ACTION="$1"
 
 if [[ "$ACTION" == "--status" ]]; then
     echo "================================================================="
-    echo "CemSim OTS - Current Hosting & Certification Status"
+    echo "DuoSim OTS - Current Hosting & Certification Status"
     echo "================================================================="
     echo "Public Server IPv4: $SERVER_IPV4"
     [[ -n "$SERVER_IPV6" ]] && echo "Public Server IPv6: $SERVER_IPV6"
-    echo "Backend Service:    $(systemctl is-active cemsim.service || echo 'inactive')"
+    echo "Backend Service:    $(systemctl is-active duosim.service || echo 'inactive')"
     echo "Caddy Proxy:        $(systemctl is-active caddy.service || echo 'inactive')"
     echo ""
     echo "Active Caddy configuration ($CADDY_SNIPPET):"
@@ -75,7 +75,7 @@ if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
 fi
 
 echo "================================================================="
-echo "Linking CemSim OTS with Domain: $DOMAIN"
+echo "Linking DuoSim OTS with Domain: $DOMAIN"
 echo "================================================================="
 
 # DNS check
@@ -109,7 +109,7 @@ if caddy validate --config /etc/caddy/Caddyfile; then
     echo "Reloading Caddy..."
     systemctl reload caddy
     echo "================================================================="
-    echo "Success! '$DOMAIN' is now linked to CemSim OTS."
+    echo "Success! '$DOMAIN' is now linked to DuoSim OTS."
     echo "Caddy will automatically provision a Let's Encrypt / ZeroSSL TLS certificate."
     echo "Visit: https://$DOMAIN"
     echo "================================================================="

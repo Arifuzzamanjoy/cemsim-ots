@@ -2,11 +2,11 @@
 
 import pytest
 
-from cemsim import thermo as th
-from cemsim.control import PID, Drive
-from cemsim.params import DraughtParams
-from cemsim.sim import CommandError, Simulator
-from cemsim.units.draught import Draught
+from duosim import thermo as th
+from duosim.control import PID, Drive
+from duosim.params import DraughtParams
+from duosim.sim import CommandError, Simulator
+from duosim.units.draught import Draught
 
 
 @pytest.fixture(scope="module")

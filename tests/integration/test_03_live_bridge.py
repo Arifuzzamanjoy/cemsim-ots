@@ -1,4 +1,4 @@
-"""The live kiln model: simulator state -> CemSim bridge -> FreeCAD, *measured* inside FreeCAD.
+"""The live kiln model: simulator state -> DuoSim bridge -> FreeCAD, *measured* inside FreeCAD.
 
 A green push is not evidence.  After each push these tests read the model back from the
 running FreeCAD (colours, cone length, clinker-bed heights, rotation angle) and compare it to
@@ -11,9 +11,9 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from cemsim import server
-from cemsim.freecad_bridge import FC_MODULE_SRC, GEOMETRY_ID, FreeCADBridge
-from cemsim.sim import Simulator
+from duosim import server
+from duosim.freecad_bridge import FC_MODULE_SRC, GEOMETRY_ID, FreeCADBridge
+from duosim.sim import Simulator
 
 from .pngstat import decode, non_background_fraction
 

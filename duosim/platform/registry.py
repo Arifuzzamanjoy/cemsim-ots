@@ -1,7 +1,7 @@
 """Simulator plug-in contract and registry: how "other simulators" plug into the platform.
 
 A plug-in is *trusted code* installed by the operator (an entry point in the group
-`cemsim.simulators`, or a directory under SIMULATORS_DIR that exposes `PLUGIN`).  Tenants do
+`duosim.simulators`, or a directory under SIMULATORS_DIR that exposes `PLUGIN`).  Tenants do
 not upload code: running untrusted simulators would need sandboxing, which is out of scope.
 
 Contract
@@ -13,7 +13,7 @@ SimulatorInstance
                 `t`, `step(n)`, `tags()`, `command(name, **args)`, `snapshot()`, `restore()`
 
 `conformance(plugin)` is the executable definition of "a well-behaved simulator" and is run by
-the test-suite for every registered plug-in and by `python -m cemsim.platform check <id>`.
+the test-suite for every registered plug-in and by `python -m duosim.platform check <id>`.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ from typing import Any, Protocol
 
 ID_RE = re.compile(r"^[a-z][a-z0-9_]{1,31}$")
 TAG_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,47}$")
-ENTRY_POINT_GROUP = "cemsim.simulators"
+ENTRY_POINT_GROUP = "duosim.simulators"
 
 
 class CommandRejected(ValueError):
@@ -306,7 +306,7 @@ class Registry:
             init = pkg / "__init__.py"
             if not (pkg.is_dir() and init.is_file()) or not ID_RE.match(pkg.name):
                 continue
-            name = f"cemsim_plugin_{pkg.name}"
+            name = f"duosim_plugin_{pkg.name}"
             spec = importlib.util.spec_from_file_location(name, init, submodule_search_locations=[str(pkg)])
             assert spec and spec.loader
             mod = importlib.util.module_from_spec(spec)
@@ -324,7 +324,7 @@ _DEFAULT: Registry | None = None
 
 
 def default_registry() -> Registry:
-    """Built-in simulators + $CEMSIM_SIMULATORS_DIR (default ./simulators) + entry points."""
+    """Built-in simulators + $DUOSIM_SIMULATORS_DIR (default ./simulators) + entry points."""
     global _DEFAULT
     if _DEFAULT is None:
         from .plugins import builtin
@@ -332,7 +332,7 @@ def default_registry() -> Registry:
         r = Registry()
         for p in builtin():
             r.register(p)
-        r.load_directory(os.environ.get("CEMSIM_SIMULATORS_DIR") or Path.cwd() / "simulators")
+        r.load_directory(os.environ.get("DUOSIM_SIMULATORS_DIR") or Path.cwd() / "simulators")
         r.load_entry_points()
         _DEFAULT = r
     return _DEFAULT

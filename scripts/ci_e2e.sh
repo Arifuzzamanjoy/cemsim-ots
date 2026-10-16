@@ -38,10 +38,10 @@ wait_http() {  # url, timeout s
   echo "timeout waiting for $1" >&2; return 1
 }
 
-$PY -m cemsim.server --port "$P_APP" >"$OUT/server.log" 2>&1 & pids+=($!)
+$PY -m duosim.server --port "$P_APP" >"$OUT/server.log" 2>&1 & pids+=($!)
 $PY tests/validation/mock_freecad.py "$P_MOCK" >"$OUT/mock_freecad.log" 2>&1 & pids+=($!)
-$PY -m cemsim.server --port "$P_FC" --freecad "127.0.0.1:$P_MOCK" >"$OUT/server_fc.log" 2>&1 & pids+=($!)
-$PY -m cemsim.server --port "$P_DEAD" --freecad 127.0.0.1:9909 >"$OUT/server_fc_dead.log" 2>&1 & pids+=($!)
+$PY -m duosim.server --port "$P_FC" --freecad "127.0.0.1:$P_MOCK" >"$OUT/server_fc.log" 2>&1 & pids+=($!)
+$PY -m duosim.server --port "$P_DEAD" --freecad 127.0.0.1:9909 >"$OUT/server_fc_dead.log" 2>&1 & pids+=($!)
 wait_http "http://localhost:$P_APP/api/snapshots" 60
 wait_http "http://localhost:$P_FC/api/snapshots" 60
 wait_http "http://localhost:$P_DEAD/api/snapshots" 60

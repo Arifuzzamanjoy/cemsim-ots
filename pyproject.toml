@@ -1,7 +1,7 @@
 [project]
-name = "cemsim-ots"
+name = "duosim"
 version = "0.1.0"
-description = "Open-source cement kiln-line operator training simulator: first-principles process model, DCS-style HMI, trainer station and live 3-D plant."
+description = "DuoSim: industrial simulation and AI design platform - first-principles cement kiln simulator, operator HMI, live 3-D plant and text / image / CAD to verified FreeCAD models."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -27,6 +27,7 @@ dependencies = [
     "scipy>=1.11",
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
+    "cryptography>=42",       # AES-GCM for workspace provider keys (bring-your-own-key)
 ]
 
 [project.optional-dependencies]
@@ -38,7 +39,7 @@ Homepage = "https://github.com/Arifuzzamanjoy/cemsim-ots"
 Issues = "https://github.com/Arifuzzamanjoy/cemsim-ots/issues"
 
 [project.scripts]
-cemsim = "cemsim.server:main"
+duosim = "duosim.server:main"
 
 [dependency-groups]
 dev = [
@@ -58,13 +59,13 @@ requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["cemsim"]
+packages = ["duosim"]
 
 # ------------------------------------------------------------------ ruff
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-extend-exclude = ["cemsim/web/vendor", "third_party"]
+extend-exclude = ["duosim/web/vendor", "third_party"]
 force-exclude = true  # also honoured when pre-commit passes files explicitly
 
 [tool.ruff.lint]
@@ -113,8 +114,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["cemsim"]
-omit = ["cemsim/freecad_bridge.py", "cemsim/freecad_worker.py"]  # exercised by the opt-in real-FreeCAD suite
+source = ["duosim"]
+omit = ["duosim/freecad_bridge.py", "duosim/freecad_worker.py"]  # exercised by the opt-in real-FreeCAD suite
 
 [tool.coverage.report]
 skip_empty = true

@@ -1,11 +1,11 @@
 """Browser end-to-end of the Studio (main page `/`) against a real FreeCAD worker.
 
-Self-contained: starts a FreeCAD worker and two CemSim servers (API-key mode and dev-open mode),
+Self-contained: starts a FreeCAD worker and two DuoSim servers (API-key mode and dev-open mode),
 drives the page in headless Chromium and checks what a user sees.  No LLM credits are spent: the
 spec is pasted in and built through "Build edited spec" (the model path is covered by
 tests/integration/test_06_design_build.py).
 
-Usage: CEMSIM_FREECAD=/opt/freecad-1.1.4 python tests/validation/e2e_design.py [screenshot_dir]
+Usage: DUOSIM_FREECAD=/opt/freecad-1.1.4 python tests/validation/e2e_design.py [screenshot_dir]
 """
 
 import asyncio
@@ -21,8 +21,8 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from cemsim.freecad_worker import FreeCADWorker, free_port
-from cemsim.platform.store import Store
+from duosim.freecad_worker import FreeCADWorker, free_port
+from duosim.platform.store import Store
 from tests.integration.pngstat import decode
 
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else None
@@ -96,15 +96,15 @@ def start_server(port, fc_port, token, data_dir, dev_open, public=False):
     env = {
         **os.environ,
         "FREECAD_MCP_TOKEN": token,
-        "CEMSIM_DATA_DIR": str(data_dir),
-        "CEMSIM_DEV_OPEN": "1" if dev_open else "",
-        "CEMSIM_PUBLIC_DEMO": "1" if public else "",
+        "DUOSIM_DATA_DIR": str(data_dir),
+        "DUOSIM_DEV_OPEN": "1" if dev_open else "",
+        "DUOSIM_PUBLIC_DEMO": "1" if public else "",
         "GEMINI_API_KEY": "",  # no provider: the page must say so, and building must still work
         "ANTHROPIC_API_KEY": "",
-        "CEMSIM_ENV_FILE": os.devnull,
+        "DUOSIM_ENV_FILE": os.devnull,
     }
     p = subprocess.Popen(
-        [sys.executable, "-m", "cemsim.server", "--port", str(port), "--freecad", f"127.0.0.1:{fc_port}"],
+        [sys.executable, "-m", "duosim.server", "--port", str(port), "--freecad", f"127.0.0.1:{fc_port}"],
         env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
@@ -218,7 +218,7 @@ async def drive_studio(base, shot_dir=None):
         await pg.wait_for_function(
             "document.querySelector('#status').textContent.includes('not a platform key')", timeout=5000
         )
-        stored = await pg.evaluate("sessionStorage.getItem('cemsim_key')")
+        stored = await pg.evaluate("sessionStorage.getItem('duosim_key')")
         check("model key refused with an explanation", stored is None and await pg.input_value("#key") == "")
         await pg.reload()
         await pg.wait_for_function(
@@ -283,7 +283,7 @@ async def drive_studio(base, shot_dir=None):
 
 
 async def main():
-    home = Path(tempfile.mkdtemp(prefix="cemsim-e2e-"))
+    home = Path(tempfile.mkdtemp(prefix="duosim-e2e-"))
     data = home / "data"
     fc_port, srv_key, srv_open = free_port(), free_port(), free_port()
     procs = []

@@ -1,4 +1,4 @@
-"""The cement kiln line (the original CemSim simulator) as a platform plug-in.
+"""The cement kiln line (the original DuoSim simulator) as a platform plug-in.
 
 A thin adapter: each session gets its own `Simulator`, started from the calibrated "nominal"
 fileset, stepped headless (no HMI).  The HMI at `/` keeps using its own global instance.

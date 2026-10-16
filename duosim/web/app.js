@@ -1,4 +1,4 @@
-/* CemSim operator HMI - vanilla JS, no build step. */
+/* DuoSim operator HMI - vanilla JS, no build step. */
 "use strict";
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -679,7 +679,7 @@ function renderFreecad(f) {
 function init() {
   buildMimic(); buildBurner(); buildCooler();
   $$("#nav button, .trainerbtn").forEach(b => { if (b.dataset.screen) b.onclick = () => show(b.dataset.screen); });
-  const open3d = () => window.open("/3d", "cemsim3d");
+  const open3d = () => window.open("/3d", "duosim3d");
   $("#open3d").onclick = open3d; $("#nav3d").onclick = open3d;
   $("#navStudio").onclick = () => { location.href = "/"; };
   const toggle = () => cmd({ type: "run", on: !(S && S.running) });

@@ -6,7 +6,7 @@
   GET  /api/events, /api/alarm_history, /api/heat_balance, /api/session, /api/snapshots
   POST /api/cmd               {"type": ..., ...}   (same payloads as the WS command channel)
 
-Run:  uv run cemsim  [--port 8000] [--freecad host:port]
+Run:  uv run duosim  [--port 8000] [--freecad host:port]
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ from .sim import TREND_TAGS, CommandError, Simulator, _num
 from .trainer import DISTURBANCES
 
 WEB = Path(__file__).resolve().parent / "web"
-log = logging.getLogger("cemsim")
+log = logging.getLogger("duosim")
 
 SIM: Simulator | None = None
 LOCK = asyncio.Lock()
@@ -175,7 +175,7 @@ async def lifespan(_app):
         t.cancel()
 
 
-app = FastAPI(title="CemSim kiln-line training simulator", lifespan=lifespan)
+app = FastAPI(title="DuoSim kiln-line training simulator", lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=2048)  # 3-D model json 890 kB -> ~200 kB
 app.add_middleware(api_design.BodyLimitMiddleware)
 api_design.configure(lambda: BRIDGE)  # designs are built in the same FreeCAD worker as the live model

@@ -1,6 +1,6 @@
 """Live 3-D visualisation of the kiln line in FreeCAD (via the FreeCAD-MCP XML-RPC addon).
 
-The bridge installs a small helper module (`cemsim_fc`) inside FreeCAD once,
+The bridge installs a small helper module (`duosim_fc`) inside FreeCAD once,
 builds a to-scale model of the line (mm, x along the kiln axis, z up) and then
 pushes a compact state dict ~1 Hz:
 
@@ -21,7 +21,7 @@ Authentication: if the addon has an auth token set (required for any remote use)
 `token=` or set FREECAD_MCP_TOKEN; it is sent as an `Authorization: Bearer` header and is
 never placed in a URL or log line.
 
-Usage: python -m cemsim.server --freecad localhost:9875   (WSL: use the Windows host IP)
+Usage: python -m duosim.server --freecad localhost:9875   (WSL: use the Windows host IP)
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ import xmlrpc.client
 EXPECTED_PROTOCOL_VERSION = 1
 TOKEN_ENV = "FREECAD_MCP_TOKEN"  # noqa: S105 - the *name* of the env var, not a secret
 TOKEN_FILE_ENV = "FREECAD_MCP_TOKEN_FILE"  # noqa: S105 - Docker/Kubernetes-secret style: path to a file
-GEOMETRY_ID = "cemsim-kiln-line-v1"  # bump when FC_MODULE_SRC.build() changes the model
+GEOMETRY_ID = "duosim-kiln-line-v1"  # bump when FC_MODULE_SRC.build() changes the model
 
 FC_MODULE_SRC = r"""
 import math, FreeCAD as App, Part
@@ -44,7 +44,7 @@ try:
 except Exception:
     Gui = None
 V = App.Vector
-DOC = "CemSimKilnLine"
+DOC = "DuoSimKilnLine"
 KILN_L, KILN_D, KILN_SLOPE = 62000.0, 4400.0, math.atan(0.035)
 NSEG = 30
 Z_OUT = 9000.0                       # kiln axis height at the outlet
@@ -380,7 +380,7 @@ class FreeCADClient:
     def execute(self, code, slow=False) -> str:
         """Run Python on FreeCAD's GUI thread; return what it printed.
 
-        Raises NeedsBuild if the code signalled CEMSIM_NEEDS_BUILD, RuntimeError on any
+        Raises NeedsBuild if the code signalled DUOSIM_NEEDS_BUILD, RuntimeError on any
         other failure reported by the addon.
         """
         if slow:
@@ -391,7 +391,7 @@ class FreeCADClient:
             r = self.call("execute_code", code, timeout=self.NORMAL)
         if isinstance(r, dict) and not r.get("success", False):
             err = str(r.get("error") or r.get("message"))
-            if "CEMSIM_NEEDS_BUILD" in err:
+            if "DUOSIM_NEEDS_BUILD" in err:
                 raise NeedsBuild(err)
             raise RuntimeError(err)
         msg = r.get("message", "") if isinstance(r, dict) else str(r)
@@ -491,7 +491,7 @@ class FreeCADClient:
         out["protocol_ok"] = self.protocol_ok
         if st and not out["protocol_ok"]:
             out["problems"].append(
-                f"addon protocol {st.get('protocol_version')!r} != {EXPECTED_PROTOCOL_VERSION} expected by CemSim: "
+                f"addon protocol {st.get('protocol_version')!r} != {EXPECTED_PROTOCOL_VERSION} expected by DuoSim: "
                 "update the addon and this bridge together"
             )
         if gd.get("state") == "stuck":
@@ -512,7 +512,7 @@ class FreeCADBridge(FreeCADClient):
     off | checking | building | live | error, with a human-readable message.
     """
 
-    DOC = "CemSimKilnLine"
+    DOC = "DuoSimKilnLine"
 
     def __init__(self, host="127.0.0.1", port=9875, token=None):
         super().__init__(host, port, token)
@@ -531,10 +531,10 @@ class FreeCADBridge(FreeCADClient):
         src = f"GEOMETRY_ID = {GEOMETRY_ID!r}\n" + FC_MODULE_SRC  # host-side constant is the single source
         code = (
             "import sys, types\n"
-            "m = types.ModuleType('cemsim_fc')\n"
-            f"exec(compile({src!r}, 'cemsim_fc', 'exec'), m.__dict__)\n"
-            "sys.modules['cemsim_fc'] = m\n"
-            "print('cemsim_fc installed')\n"
+            "m = types.ModuleType('duosim_fc')\n"
+            f"exec(compile({src!r}, 'duosim_fc', 'exec'), m.__dict__)\n"
+            "sys.modules['duosim_fc'] = m\n"
+            "print('duosim_fc installed')\n"
         )
         self.execute(code, slow=True)
         self.installed = True
@@ -544,7 +544,7 @@ class FreeCADBridge(FreeCADClient):
         self.check()
         self.set_status("building", "building the 3-D kiln line in FreeCAD ...")
         self.install()
-        out = self.execute("import sys; print('objects', sys.modules['cemsim_fc'].build())", slow=True)
+        out = self.execute("import sys; print('objects', sys.modules['duosim_fc'].build())", slow=True)
         self._last_t = None
         return out.strip()
 
@@ -552,9 +552,9 @@ class FreeCADBridge(FreeCADClient):
         """Measured model state inside FreeCAD (colours, geometry, rotation) - see FC_MODULE_SRC.readback."""
         code = (
             "import sys, json\n"
-            "m = sys.modules.get('cemsim_fc')\n"
+            "m = sys.modules.get('duosim_fc')\n"
             f"if m is None or {self.DOC!r} not in __import__('FreeCAD').listDocuments():\n"
-            "    raise RuntimeError('CEMSIM_NEEDS_BUILD')\n"
+            "    raise RuntimeError('DUOSIM_NEEDS_BUILD')\n"
             "print(json.dumps(m.readback()))\n"
         )
         return json.loads(self.execute(code).strip().splitlines()[-1])
@@ -605,9 +605,9 @@ class FreeCADBridge(FreeCADClient):
         payload = json.dumps(_native(st))
         code = (
             "import sys, json, FreeCAD\n"
-            "m = sys.modules.get('cemsim_fc')\n"
+            "m = sys.modules.get('duosim_fc')\n"
             f"if m is None or {self.DOC!r} not in FreeCAD.listDocuments():\n"
-            "    raise RuntimeError('CEMSIM_NEEDS_BUILD')\n"
+            "    raise RuntimeError('DUOSIM_NEEDS_BUILD')\n"
             f"m.update(json.loads({payload!r}))\n"
         )
         try:
@@ -619,7 +619,7 @@ class FreeCADBridge(FreeCADClient):
         self.status["pushes"] = self.status.get("pushes", 0) + 1
 
 
-if __name__ == "__main__":  # quick manual test:  python -m cemsim.freecad_bridge
+if __name__ == "__main__":  # quick manual test:  python -m duosim.freecad_bridge
     from .sim import Simulator
 
     b = FreeCADBridge()

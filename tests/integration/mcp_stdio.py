@@ -112,7 +112,7 @@ class MCPStdioClient:
             {
                 "protocolVersion": PROTOCOL,
                 "capabilities": {},
-                "clientInfo": {"name": "cemsim-validation", "version": "1"},
+                "clientInfo": {"name": "duosim-validation", "version": "1"},
             },
             timeout=60,
         )

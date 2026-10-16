@@ -18,8 +18,8 @@ What a worker is:
 The addon's own auto-start is hard-wired to port 9875, so a startup macro starts the server
 on the requested port instead (several workers can then share a host).
 
-    python -m cemsim.freecad_worker start --port 9875        # foreground; Ctrl-C / SIGTERM stops
-    python -m cemsim.freecad_worker find                      # where is FreeCAD?
+    python -m duosim.freecad_worker start --port 9875        # foreground; Ctrl-C / SIGTERM stops
+    python -m duosim.freecad_worker find                      # where is FreeCAD?
 
 Library use (tests, the platform's worker pool):
 
@@ -49,7 +49,7 @@ from .freecad_bridge import FreeCADClient
 
 REPO = Path(__file__).resolve().parent.parent
 ADDON_SRC = REPO / "third_party" / "freecad-mcp" / "addon" / "FreeCADMCP"
-ENV_ROOT = "CEMSIM_FREECAD"  # path to an extracted AppImage dir (has AppRun), or to a freecad executable
+ENV_ROOT = "DUOSIM_FREECAD"  # path to an extracted AppImage dir (has AppRun), or to a freecad executable
 
 START_MACRO = """\
 import FreeCAD
@@ -63,16 +63,16 @@ def _start():
         FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Document").SetBool("AutoSaveEnabled", False)
         from rpc_server import rpc_server
 
-        FreeCAD.Console.PrintMessage("[cemsim-worker] " + rpc_server.start_rpc_server(port=%(port)d) + "\\n")
+        FreeCAD.Console.PrintMessage("[duosim-worker] " + rpc_server.start_rpc_server(port=%(port)d) + "\\n")
     except Exception as e:
-        FreeCAD.Console.PrintError("[cemsim-worker] RPC start failed: %%r\\n" %% (e,))
+        FreeCAD.Console.PrintError("[duosim-worker] RPC start failed: %%r\\n" %% (e,))
 
 
 QtCore.QTimer.singleShot(500, _start)
 """
 
 
-log = logging.getLogger("cemsim.freecad_worker")
+log = logging.getLogger("duosim.freecad_worker")
 
 
 class WorkerError(RuntimeError):
@@ -83,7 +83,7 @@ class WorkerError(RuntimeError):
 def find_freecad() -> list[str] | None:
     """Command prefix that launches the FreeCAD GUI build, or None.
 
-    Order: $CEMSIM_FREECAD, /opt/freecad-*/AppRun (newest first), ~/freecad*/AppRun, PATH.
+    Order: $DUOSIM_FREECAD, /opt/freecad-*/AppRun (newest first), ~/freecad*/AppRun, PATH.
     """
     env = os.environ.get(ENV_ROOT)
     cands: list[Path] = []
@@ -201,7 +201,7 @@ class FreeCADWorker:
         self.port = port or free_port()
         self.token = token or secrets.token_urlsafe(32)
         self._own_home = home is None
-        self.home = Path(home) if home else Path(tempfile.mkdtemp(prefix="cemsim-fc-"))
+        self.home = Path(home) if home else Path(tempfile.mkdtemp(prefix="duosim-fc-"))
         self.display = display
         self.freecad = freecad or find_freecad()
         self.remote, self.allowed_ips = remote, allowed_ips
@@ -245,7 +245,7 @@ class FreeCADWorker:
 
     def _probe_userdata(self, env: dict[str, str]) -> None:
         """Ask the console build for its version and per-user data dir (differs per release)."""
-        code = "import FreeCAD; print('CEMSIM_PROBE', '.'.join(FreeCAD.Version()[:3]), FreeCAD.getUserAppDataDir())"
+        code = "import FreeCAD; print('DUOSIM_PROBE', '.'.join(FreeCAD.Version()[:3]), FreeCAD.getUserAppDataDir())"
         r = subprocess.run(  # noqa: S603 - argv from find_freecad()
             [*_console_variant(self.freecad), "-c", code],
             env=env,
@@ -255,7 +255,7 @@ class FreeCADWorker:
             check=False,
         )
         for ln in (r.stdout + r.stderr).splitlines():
-            if ln.startswith("CEMSIM_PROBE"):
+            if ln.startswith("DUOSIM_PROBE"):
                 _, ver, ud = ln.split(" ", 2)
                 self.version, self.user_data = ver, Path(ud.strip())
                 return
@@ -437,12 +437,12 @@ class FreeCADWorker:
 
 # --------------------------------------------------------------------- CLI
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(prog="python -m cemsim.freecad_worker", description=__doc__.split("\n\n")[0])
+    ap = argparse.ArgumentParser(prog="python -m duosim.freecad_worker", description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("find", help="print the FreeCAD command that would be used")
     st = sub.add_parser("start", help="start a worker in the foreground")
     st.add_argument("--port", type=int, default=9875)
-    st.add_argument("--home", default="", help="sandbox dir (default: .cemsim/freecad-worker/<port> in the repo)")
+    st.add_argument("--home", default="", help="sandbox dir (default: .duosim/freecad-worker/<port> in the repo)")
     st.add_argument("--token-file", default="", help="read the auth token from this file (default: generate)")
     st.add_argument("--display", default="", help="use this X display instead of starting Xvfb")
     st.add_argument("--remote", action="store_true", help="listen on 0.0.0.0 (token + --allow required)")
@@ -465,7 +465,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.remote and not token:
         print("error: the token file is empty", file=sys.stderr)
         return 2
-    home = Path(a.home) if a.home else REPO / ".cemsim" / "freecad-worker" / str(a.port)
+    home = Path(a.home) if a.home else REPO / ".duosim" / "freecad-worker" / str(a.port)
     w = FreeCADWorker(
         port=a.port, token=token, home=home, display=a.display or None, remote=a.remote, allowed_ips=a.allow
     )

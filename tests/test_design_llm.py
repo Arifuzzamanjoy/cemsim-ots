@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from cemsim.design.llm import (
+from duosim.design.llm import (
     CLAUDE_DEFAULT_MODEL,
     GEMINI_DEFAULT_MODEL,
     ClaudeProvider,
@@ -15,7 +15,7 @@ from cemsim.design.llm import (
     load_dotenv,
     providers_from_env,
 )
-from cemsim.design.service import (
+from duosim.design.service import (
     SPEC_SCHEMA,
     SYSTEM_PROMPT,
     DesignError,
@@ -77,14 +77,14 @@ def test_gemini_errors_are_actionable_and_never_echo_the_key(status, needle):
 
 
 def test_gemini_retries_transient_errors_then_succeeds(monkeypatch):
-    monkeypatch.setattr("cemsim.design.llm.time.sleep", lambda s: None)
+    monkeypatch.setattr("duosim.design.llm.time.sleep", lambda s: None)
     t = FakeTransport((503, b"{}"), (429, b"{}"), gemini_ok())
     assert GeminiProvider(KEY, transport=t).generate("s", "u").text == SPEC_JSON
     assert len(t.calls) == 3
 
 
 def test_gemini_falls_back_to_the_next_model_when_one_is_gone(monkeypatch):
-    monkeypatch.setattr("cemsim.design.llm.time.sleep", lambda s: None)
+    monkeypatch.setattr("duosim.design.llm.time.sleep", lambda s: None)
     gone = (404, json.dumps({"error": {"message": "no longer available to new users"}}).encode())
     t = FakeTransport(gone, gemini_ok())
     r = GeminiProvider(KEY, transport=t, retries=0).generate("s", "u")

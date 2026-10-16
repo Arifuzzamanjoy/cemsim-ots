@@ -1,7 +1,7 @@
-"""The upstream `freecad-mcp` MCP server (PyPI, stdio) against the same FreeCAD that CemSim uses.
+"""The upstream `freecad-mcp` MCP server (PyPI, stdio) against the same FreeCAD that DuoSim uses.
 
 Validates the second leg of the integration: an MCP client (Claude Desktop, Claude Code,
-Gemini CLI, ...) -> freecad-mcp -> XML-RPC -> addon -> FreeCAD, and that this leg and CemSim's
+Gemini CLI, ...) -> freecad-mcp -> XML-RPC -> addon -> FreeCAD, and that this leg and DuoSim's
 own client see one and the same FreeCAD session.
 """
 
@@ -61,11 +61,11 @@ def test_mcp_reports_a_matching_addon_without_version_warning(mcp):
     assert st["gui_dispatch"]["state"] == "healthy"
 
 
-def test_mcp_creates_geometry_that_cemsim_client_measures(mcp, client, doc_name, cleanup_docs):
+def test_mcp_creates_geometry_that_duosim_client_measures(mcp, client, doc_name, cleanup_docs):
     cleanup_docs.append(doc_name)
     r = mcp.call_tool("create_document", {"name": doc_name})
     assert not r["is_error"], r["text"]
-    assert doc_name in client.list_documents()  # same FreeCAD session seen from CemSim's client
+    assert doc_name in client.list_documents()  # same FreeCAD session seen from DuoSim's client
 
     r = mcp.call_tool(
         "create_object",
@@ -82,17 +82,17 @@ def test_mcp_creates_geometry_that_cemsim_client_measures(mcp, client, doc_name,
     assert float(vol) == pytest.approx(20 * 10 * 5)
 
 
-def test_cemsim_creates_geometry_that_mcp_reads_back(mcp, client, doc_name, cleanup_docs):
+def test_duosim_creates_geometry_that_mcp_reads_back(mcp, client, doc_name, cleanup_docs):
     cleanup_docs.append(doc_name)
     client.execute(
         "import FreeCAD, Part\n"
         f"d = FreeCAD.newDocument({doc_name!r})\n"
-        "c = d.addObject('Part::Cylinder', 'CemsimCyl'); c.Radius = 3; c.Height = 7; d.recompute()\n"
+        "c = d.addObject('Part::Cylinder', 'DuosimCyl'); c.Radius = 3; c.Height = 7; d.recompute()\n"
     )
     r = mcp.call_tool("get_objects", {"doc_name": doc_name, "include_screenshot": False})
     assert not r["is_error"], r["text"]
     objs = _json(r["text"])
-    cyl = next(o for o in objs if o["Name"] == "CemsimCyl")
+    cyl = next(o for o in objs if o["Name"] == "DuosimCyl")
     assert cyl["TypeId"] == "Part::Cylinder"
     # Quantity properties are serialised through str(): "3.0 mm"
     assert float(str(cyl["Properties"]["Radius"]).split()[0]) == pytest.approx(3.0)
@@ -100,7 +100,7 @@ def test_cemsim_creates_geometry_that_mcp_reads_back(mcp, client, doc_name, clea
     assert cyl["Shape"]["Volume"] == pytest.approx(math.pi * 3.0**2 * 7.0, rel=1e-9)  # analytic, via MCP
 
 
-def test_mcp_edit_is_visible_to_cemsim(mcp, client, doc_name, cleanup_docs):
+def test_mcp_edit_is_visible_to_duosim(mcp, client, doc_name, cleanup_docs):
     cleanup_docs.append(doc_name)
     mcp.call_tool("create_document", {"name": doc_name})
     mcp.call_tool(
@@ -127,10 +127,10 @@ def test_mcp_edit_is_visible_to_cemsim(mcp, client, doc_name, cleanup_docs):
     assert float(vol) == pytest.approx(9.0)
 
 
-def test_mcp_and_cemsim_share_the_script_namespace(mcp, client):
-    r = mcp.call_tool("execute_code", {"code": "cemsim_shared_probe = 1234", "include_screenshot": False})
+def test_mcp_and_duosim_share_the_script_namespace(mcp, client):
+    r = mcp.call_tool("execute_code", {"code": "duosim_shared_probe = 1234", "include_screenshot": False})
     assert not r["is_error"], r["text"]
-    assert client.execute("print(cemsim_shared_probe)").strip() == "1234"
+    assert client.execute("print(duosim_shared_probe)").strip() == "1234"
 
 
 def test_mcp_execute_code_error_is_reported_not_swallowed(mcp):

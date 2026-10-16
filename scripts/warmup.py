@@ -4,7 +4,7 @@ import sys
 import time
 
 sys.path.insert(0, ".")
-from cemsim.plant import Plant, nominal_actuators
+from duosim.plant import Plant, nominal_actuators
 
 hours = float(sys.argv[1]) if len(sys.argv) > 1 else 1.0
 dt = float(sys.argv[2]) if len(sys.argv) > 2 else 2.0
@@ -46,6 +46,6 @@ for i in range(steps):
         print("  ".join(f"{kk}={k[kk]:.1f}" for kk in keys))
 from pathlib import Path
 
-from cemsim import fileset
+from duosim import fileset
 
 fileset.dump(p.snapshot(), Path("scratch_state.json"))

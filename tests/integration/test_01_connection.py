@@ -1,4 +1,4 @@
-"""FreeCAD <-> FreeCAD-MCP addon <-> CemSim client: the RPC link itself.
+"""FreeCAD <-> FreeCAD-MCP addon <-> DuoSim client: the RPC link itself.
 
 Everything here runs against a real FreeCAD GUI process with the real addon.
 """
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from cemsim.freecad_bridge import EXPECTED_PROTOCOL_VERSION, FreeCADClient
+from duosim.freecad_bridge import EXPECTED_PROTOCOL_VERSION, FreeCADClient
 
 from .pngstat import decode, non_background_fraction
 
@@ -103,8 +103,8 @@ def test_python_errors_come_back_as_errors_and_the_gui_survives(client):
 
 
 def test_script_namespace_persists_between_calls(client):
-    client.execute("cemsim_probe_value = 41")
-    assert client.execute("print(cemsim_probe_value + 1)").strip() == "42"
+    client.execute("duosim_probe_value = 41")
+    assert client.execute("print(duosim_probe_value + 1)").strip() == "42"
 
 
 def test_geometry_kernel_gives_exact_volumes(client):

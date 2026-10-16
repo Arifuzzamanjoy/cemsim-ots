@@ -55,7 +55,7 @@ def _tenant(ws: Workspace) -> str:
 def _idle_ttl(tenant: str) -> float:
     """Anonymous (scoped) visitors lose an abandoned console quickly: a closed tab cannot clean up."""
     anonymous = bool(tenant.partition(":")[2])
-    return float(_limit("CEMSIM_PUBLIC_SESSION_IDLE_S", 90) if anonymous else _limit("CEMSIM_SESSION_IDLE_S", 1800))
+    return float(_limit("DUOSIM_PUBLIC_SESSION_IDLE_S", 90) if anonymous else _limit("DUOSIM_SESSION_IDLE_S", 1800))
 
 
 def _evict(tenant: str) -> None:
@@ -112,12 +112,12 @@ async def create_session(body: SessionIn, ws: WS):
         plugin = default_registry().get(body.simulator)
     except KeyError:
         raise HTTPException(404, "no such simulator") from None
-    cap = _limit("CEMSIM_MAX_SESSIONS", 5)
+    cap = _limit("DUOSIM_MAX_SESSIONS", 5)
     with _GUARD:
         _evict(_tenant(ws))
         if len(_SESSIONS.get(_tenant(ws), {})) >= cap:
             raise HTTPException(429, f"at most {cap} concurrent sessions per workspace; delete one first")
-    _take(ws, "session", _limit("CEMSIM_DAILY_SESSIONS", 100))
+    _take(ws, "session", _limit("DUOSIM_DAILY_SESSIONS", 100))
     inst = await asyncio.to_thread(plugin.create, body.seed)
     s = Session(uuid.uuid4().hex[:16], body.simulator, inst)
     with _GUARD:

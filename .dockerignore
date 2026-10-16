@@ -1,6 +1,6 @@
 .git
 .venv
-.cemsim
+.duosim
 .env
 .env.*
 !.env.example

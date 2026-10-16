@@ -1,0 +1,27 @@
+# The DuoSim app (Studio at /, operator HMI at /hmi, APIs) behind Caddy on 127.0.0.1:8000.
+# Replaces the older unit that ran only the simulator: same port, so Caddy needs no change.
+# Install:  sudo cp deploy/systemd/duosim.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#           sudo systemctl restart duosim
+# Secrets (GEMINI_API_KEY, ...) go in /etc/duosim/duosim.env (mode 0640), not in this file.
+[Unit]
+Description=DuoSim - Design Studio and cement kiln-line operator training simulator
+After=network.target duosim-freecad.service
+Wants=duosim-freecad.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/SIM/cemsim-ots
+EnvironmentFile=-/etc/duosim/duosim.env
+Environment=PYTHONUNBUFFERED=1
+Environment=FREECAD_MCP_TOKEN_FILE=/etc/duosim/freecad_token
+Environment=DUOSIM_DATA_DIR=/var/lib/duosim/data
+StateDirectory=duosim
+ExecStart=/home/ubuntu/SIM/cemsim-ots/.venv/bin/duosim --host 127.0.0.1 --port 8000 --freecad 127.0.0.1:9875
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

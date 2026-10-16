@@ -1,4 +1,4 @@
-"""HTTP API for design-by-prompt and the tenant layer.  Included by `cemsim.server`.
+"""HTTP API for design-by-prompt and the tenant layer.  Included by `duosim.server`.
 
     GET  /api/design/status              providers + FreeCAD worker health
     POST /api/design/generate            {prompt, provider?, build?}  -> spec (+ verified FreeCAD build)
@@ -7,7 +7,7 @@
     GET  /api/design/{id}                one design
     GET  /api/design/{id}/file/{kind}    mesh | step | fcstd | png | spec
 
-Every route needs `X-API-Key` (or `Authorization: Bearer`) unless CEMSIM_DEV_OPEN=1, because
+Every route needs `X-API-Key` (or `Authorization: Bearer`) unless DUOSIM_DEV_OPEN=1, because
 generation spends model credits and a build runs on the shared FreeCAD worker.
 """
 
@@ -33,7 +33,7 @@ from .design.spec import SpecError, parse_spec
 from .freecad_bridge import FreeCADClient, explain
 from .platform.store import ID_RE, QuotaExceeded, Store, Workspace
 
-log = logging.getLogger("cemsim.api_design")
+log = logging.getLogger("duosim.api_design")
 router = APIRouter(prefix="/api/design")
 
 MAX_BODY = 1_000_000  # bytes
@@ -69,10 +69,10 @@ def get_store() -> Store:
 def get_service() -> DesignService:
     global _SERVICE, _ENV_LOADED
     if not _ENV_LOADED:
-        load_dotenv(os.environ.get("CEMSIM_ENV_FILE", ".env"))
+        load_dotenv(os.environ.get("DUOSIM_ENV_FILE", ".env"))
         _ENV_LOADED = True
     if _SERVICE is None:
-        _SERVICE = DesignService(providers_from_env(), os.environ.get("CEMSIM_DEFAULT_PROVIDER"))
+        _SERVICE = DesignService(providers_from_env(), os.environ.get("DUOSIM_DEFAULT_PROVIDER"))
     return _SERVICE
 
 
@@ -81,7 +81,7 @@ def get_client() -> FreeCADClient | None:
     b = _bridge_getter()
     if b is not None:
         return FreeCADClient(b.host, b.port, b.token)
-    url = os.environ.get("CEMSIM_FREECAD_URL", "").strip()
+    url = os.environ.get("DUOSIM_FREECAD_URL", "").strip()
     if url:
         host, _, port = url.rpartition(":")
         return FreeCADClient(host or "127.0.0.1", int(port))
@@ -172,17 +172,17 @@ class BodyLimitMiddleware:
 
 
 PUBLIC_NAME = "public"
-# (everyone per UTC day, one client IP per UTC hour); env CEMSIM_PUBLIC_DAILY_<KIND>S / _HOURLY_<KIND>S override
+# (everyone per UTC day, one client IP per UTC hour); env DUOSIM_PUBLIC_DAILY_<KIND>S / _HOURLY_<KIND>S override
 PUBLIC_LIMITS = {"generate": (20, 5), "build": (60, 15), "session": (40, 10)}
 
 
 def public_demo() -> bool:
-    """Anonymous visitors may use the Studio with small shared caps (CEMSIM_PUBLIC_DEMO=1)."""
-    return os.environ.get("CEMSIM_PUBLIC_DEMO") == "1"
+    """Anonymous visitors may use the Studio with small shared caps (DUOSIM_PUBLIC_DEMO=1)."""
+    return os.environ.get("DUOSIM_PUBLIC_DEMO") == "1"
 
 
 def _client_ip(request: Request) -> str:
-    if os.environ.get("CEMSIM_TRUST_FORWARDED") == "1":  # only behind a proxy that sets it
+    if os.environ.get("DUOSIM_TRUST_FORWARDED") == "1":  # only behind a proxy that sets it
         xff = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
         if xff:
             return xff[:45]
@@ -197,7 +197,7 @@ def workspace(request: Request) -> Workspace:
     if declared > MAX_BODY:
         raise HTTPException(413, "request body too large")
     store = get_store()
-    if os.environ.get("CEMSIM_DEV_OPEN") == "1":
+    if os.environ.get("DUOSIM_DEV_OPEN") == "1":
         ws = store.workspace("dev")
         assert ws is not None
         return ws
@@ -205,14 +205,14 @@ def workspace(request: Request) -> Workspace:
     if key:  # a key that is presented must be valid: no silent downgrade to anonymous
         ws = store.authenticate(key)
         if ws is None:
-            raise HTTPException(401, "that API key is not valid (platform keys start with cs_)")
+            raise HTTPException(401, "that API key is not valid (platform keys start with ds_)")
         return ws
     if public_demo():
         base = store.workspace(PUBLIC_NAME)
         assert base is not None
         return Workspace(base.id, base.name, scope=_client_ip(request))
     hmac.compare_digest("x" * 8, "y" * 8)
-    raise HTTPException(401, "API key required: send X-API-Key (create one: python -m cemsim.platform keys create)")
+    raise HTTPException(401, "API key required: send X-API-Key (create one: python -m duosim.platform keys create)")
 
 
 def _limit(name: str, default: int) -> int:
@@ -226,7 +226,7 @@ def public_limit(kind: str, per: str) -> int:
     """Cap for anonymous visitors: per='daily' (all visitors together) or 'hourly' (one IP)."""
     day, hour = PUBLIC_LIMITS[kind]
     noun = {"generate": "GENERATIONS", "build": "BUILDS", "session": "SESSIONS"}[kind]
-    return _limit(f"CEMSIM_PUBLIC_{per.upper()}_{noun}", day if per == "daily" else hour)
+    return _limit(f"DUOSIM_PUBLIC_{per.upper()}_{noun}", day if per == "daily" else hour)
 
 
 def _take(ws: Workspace, kind: str, limit: int) -> list[tuple[str, str, str]]:
@@ -280,7 +280,7 @@ async def _build(spec) -> tuple[BuildResult | None, str | None]:
     if builder is None:
         return (
             None,
-            "no FreeCAD worker configured (start the server with --freecad host:port or set CEMSIM_FREECAD_URL)",
+            "no FreeCAD worker configured (start the server with --freecad host:port or set DUOSIM_FREECAD_URL)",
         )
     try:
         return await asyncio.to_thread(builder.build, spec), None
@@ -338,11 +338,11 @@ async def status(ws: WS):
         "usage": {
             "generate": {
                 "used": st.used_today(ws, "generate"),
-                "limit": public_limit("generate", "daily") if pub else _limit("CEMSIM_DAILY_GENERATIONS", 50),
+                "limit": public_limit("generate", "daily") if pub else _limit("DUOSIM_DAILY_GENERATIONS", 50),
             },
             "build": {
                 "used": st.used_today(ws, "build"),
-                "limit": public_limit("build", "daily") if pub else _limit("CEMSIM_DAILY_BUILDS", 200),
+                "limit": public_limit("build", "daily") if pub else _limit("DUOSIM_DAILY_BUILDS", 200),
             },
         },
     }
@@ -350,7 +350,7 @@ async def status(ws: WS):
 
 @router.post("/generate")
 async def generate(body: GenerateIn, ws: WS):
-    tokens = _take(ws, "generate", _limit("CEMSIM_DAILY_GENERATIONS", 50))
+    tokens = _take(ws, "generate", _limit("DUOSIM_DAILY_GENERATIONS", 50))
     svc = get_service()
     try:
         gen = await asyncio.to_thread(svc.generate, body.prompt, body.provider)
@@ -364,7 +364,7 @@ async def generate(body: GenerateIn, ws: WS):
     spec_dict = gen.spec.to_dict()
     res, err = (None, "build not requested")
     if body.build:
-        _take(ws, "build", _limit("CEMSIM_DAILY_BUILDS", 200))
+        _take(ws, "build", _limit("DUOSIM_DAILY_BUILDS", 200))
         res, err = await _build(gen.spec)
     did = _persist(ws, body.prompt, gen.provider, gen.model, spec_dict, res)
     return {
@@ -386,7 +386,7 @@ async def build(body: BuildIn, ws: WS):
         spec, warns = parse_spec(body.spec)
     except SpecError as e:
         return JSONResponse({"detail": "invalid design", "errors": e.errors}, status_code=422)
-    _take(ws, "build", _limit("CEMSIM_DAILY_BUILDS", 200))
+    _take(ws, "build", _limit("DUOSIM_DAILY_BUILDS", 200))
     res, err = await _build(spec)
     did = _persist(ws, body.prompt or "(edited spec)", None, None, spec.to_dict(), res)
     return {"id": did, "spec": spec.to_dict(), "warnings": warns, "build": _build_json(res, err)}
