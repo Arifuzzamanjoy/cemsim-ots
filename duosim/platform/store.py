@@ -58,6 +58,9 @@ class Workspace:
     id: str
     name: str
     scope: str = ""  # sub-tenant inside a shared workspace: anonymous public-demo visitors are scoped by IP
+    user_id: str | None = None  # the signed-in user (browser session), None for API keys / public / dev
+    role: str = ""  # that user's role in the workspace (owner / admin / member)
+    via: str = "key"  # how the request authenticated: key | session | public | dev
 
 
 def data_dir() -> Path:
@@ -221,6 +224,17 @@ class Store:
                 (ws.id, limit),
             ).fetchall()
         return [{**dict(r), "verified": None if r["verified"] is None else bool(r["verified"])} for r in rows]
+
+    def delete_design(self, ws: Workspace, design_id: str) -> bool:
+        if not ID_RE.match(design_id):
+            return False
+        with self._conn() as c:
+            n = c.execute("DELETE FROM designs WHERE id=? AND workspace_id=?", (design_id, ws.id)).rowcount
+        if n:
+            import shutil
+
+            shutil.rmtree(self.design_dir(ws, design_id), ignore_errors=True)
+        return n > 0
 
     def artifact_path(self, ws: Workspace, design_id: str, kind: str) -> Path | None:
         name = DESIGN_ARTIFACTS.get(kind)

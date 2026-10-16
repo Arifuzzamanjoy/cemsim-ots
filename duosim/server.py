@@ -26,7 +26,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import api_design, api_platform
+from . import api_design, api_platform, api_saas, pages
 from .sim import TREND_TAGS, CommandError, Simulator, _num
 from .trainer import DISTURBANCES
 
@@ -181,6 +181,10 @@ app.add_middleware(api_design.BodyLimitMiddleware)
 api_design.configure(lambda: BRIDGE)  # designs are built in the same FreeCAD worker as the live model
 app.include_router(api_design.router)
 app.include_router(api_platform.router)
+for _r in api_saas.routers:
+    app.include_router(_r)
+app.include_router(pages.router)
+app.add_middleware(pages.SecurityHeadersMiddleware)
 
 
 # ---------------------------------------------------------------------------
@@ -361,22 +365,10 @@ async def api_freecad_health(deep: bool = False):
     return JSONResponse(_clean({"configured": True, **rep}))
 
 
-@app.get("/")
-async def index():
-    """Main page: the Design Studio (prompt -> FreeCAD model, simulator gallery)."""
-    return FileResponse(WEB / "design.html")
-
-
 @app.get("/hmi")
 async def hmi():
     """The cement kiln operator HMI: the platform's flagship simulator demo."""
     return FileResponse(WEB / "index.html")
-
-
-@app.get("/design")
-async def design_page():
-    """Alias of `/` (kept for existing links)."""
-    return FileResponse(WEB / "design.html")
 
 
 @app.get("/3d")

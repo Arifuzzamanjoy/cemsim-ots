@@ -1,4 +1,4 @@
-"""Browser end-to-end of the Studio (main page `/`) against a real FreeCAD worker.
+"""Browser end-to-end of the Studio (`/app`) against a real FreeCAD worker.
 
 Self-contained: starts a FreeCAD worker and two DuoSim servers (API-key mode and dev-open mode),
 drives the page in headless Chromium and checks what a user sees.  No LLM credits are spent: the
@@ -128,7 +128,7 @@ async def drive(base, key=None, expect_key_prompt=False):
             ),
         )
         pg.on("dialog", lambda d: (dialogs.append(d.message), asyncio.ensure_future(d.dismiss())))
-        await pg.goto(f"{base}/")
+        await pg.goto(f"{base}/app")
 
         if expect_key_prompt:
             await pg.wait_for_function(
@@ -203,7 +203,7 @@ async def drive_studio(base, shot_dir=None):
         sent_keys, errors = [], []
         pg.on("request", lambda r: sent_keys.append(r.headers.get("x-api-key")) if r.headers.get("x-api-key") else None)
         pg.on("pageerror", lambda e: errors.append(str(e)))
-        await pg.goto(f"{base}/")
+        await pg.goto(f"{base}/app")
         await pg.wait_for_function(
             "document.querySelector('#chip-usage').textContent.includes('public demo')", timeout=30000
         )
@@ -277,7 +277,7 @@ async def drive_studio(base, shot_dir=None):
         await pg.wait_for_selector("#navStudio", timeout=15000)
         await pg.click("#navStudio")
         await pg.wait_for_selector("#chip-freecad", timeout=15000)
-        check("HMI -> Studio navigation", pg.url.rstrip("/") == base.rstrip("/"), pg.url)
+        check("HMI -> Studio navigation", pg.url.rstrip("/") == base.rstrip("/") + "/app", pg.url)
         check("no page errors", not errors, "; ".join(errors[:3]))
         await b.close()
 

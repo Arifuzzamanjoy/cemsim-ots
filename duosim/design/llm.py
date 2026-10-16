@@ -1,6 +1,12 @@
-"""LLM providers for design-by-prompt: Google Gemini (REST) and Anthropic Claude (official SDK).
+"""LLM providers for design-by-prompt and design-by-image.
 
-Both return JSON text; nothing the model says is executed (see spec.py / builder.py).
+  gemini              Google Gemini (REST)
+  claude              Anthropic Claude (official SDK)
+  openai              OpenAI Chat Completions (REST)
+  <any name>          any OpenAI-compatible endpoint: OpenRouter, Groq, Together, Mistral, DeepSeek, vLLM, Ollama,
+                      LM Studio, Azure-style gateways ... (operator: DUOSIM_PROVIDERS; tenants: workspace keys)
+
+All return JSON text; nothing the model says is executed (see spec.py / builder.py).
 API keys come from the environment (or a git-ignored `.env`) and are sent only in request
 headers - never in a URL, a log line or an error message.
 """
@@ -46,8 +52,11 @@ class LLMResult:
 class Provider(Protocol):
     name: str
     model: str
+    vision: bool  # accepts reference images
 
-    def generate(self, system: str, user: str, *, schema: dict | None = None, timeout: float = 120.0) -> LLMResult: ...
+    def generate(
+        self, system: str, user: str, *, schema: dict | None = None, timeout: float = 120.0, images: list | None = None
+    ) -> LLMResult: ...
 
 
 def load_dotenv(path: str | Path) -> int:
@@ -101,6 +110,7 @@ def _urllib_transport(url: str, headers: dict[str, str], body: bytes, timeout: f
 
 class GeminiProvider:
     name = "gemini"
+    vision = True
 
     def __init__(
         self,
@@ -111,7 +121,10 @@ class GeminiProvider:
         retries: int = 2,
         fallback_models: tuple[str, ...] | None = None,
         thinking: str | None = None,
+        name: str | None = None,
     ):
+        if name:
+            self.name = name
         # Design JSON from a structured prompt does not need deep reasoning, and thinking tokens are
         # latency a user waits for. "low" is the default; DUOSIM_GEMINI_THINKING=default leaves it to
         # the model. Models that do not know thinkingLevel (2.x) answer 400: we then drop it and retry.
@@ -126,10 +139,14 @@ class GeminiProvider:
         self._base = base_url.rstrip("/")
         self._retries = retries
 
-    def generate(self, system: str, user: str, *, schema: dict | None = None, timeout: float = 120.0) -> LLMResult:
+    def generate(
+        self, system: str, user: str, *, schema: dict | None = None, timeout: float = 120.0, images: list | None = None
+    ) -> LLMResult:
+        parts: list[dict[str, Any]] = [{"inline_data": {"mime_type": im.mime, "data": im.b64()}} for im in images or []]
+        parts.append({"text": user})
         body = {
             "systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "responseMimeType": "application/json",
                 "temperature": 0.2,
@@ -219,6 +236,7 @@ class ClaudeProvider:
     """
 
     name = "claude"
+    vision = True
 
     def __init__(
         self,
@@ -227,8 +245,11 @@ class ClaudeProvider:
         client: Any = None,
         fallbacks: bool = True,
         effort: str = "medium",
+        name: str | None = None,
     ):
         self.model = model or os.environ.get("DUOSIM_CLAUDE_MODEL") or CLAUDE_DEFAULT_MODEL
+        if name:
+            self.name = name
         self._fallbacks = fallbacks
         self._effort = effort
         self._key = api_key or ""
@@ -243,7 +264,9 @@ class ClaudeProvider:
             self._client = anthropic.Anthropic(api_key=self._key or None, max_retries=2)
         return self._client
 
-    def generate(self, system: str, user: str, *, schema: dict | None = None, timeout: float = 120.0) -> LLMResult:
+    def generate(
+        self, system: str, user: str, *, schema: dict | None = None, timeout: float = 120.0, images: list | None = None
+    ) -> LLMResult:
         client = self._get_client()
         out_cfg: dict[str, Any] = {"effort": self._effort}
         if schema:
@@ -252,7 +275,7 @@ class ClaudeProvider:
             "model": self.model,
             "max_tokens": MAX_OUTPUT_TOKENS,
             "system": system,
-            "messages": [{"role": "user", "content": user}],
+            "messages": [{"role": "user", "content": _claude_content(user, images)}],
             "output_config": out_cfg,
             "timeout": timeout,
         }
@@ -289,9 +312,147 @@ class ClaudeProvider:
         return LLMResult(text, self.name, self.model, round(dt, 3), usage)
 
 
+def _claude_content(user: str, images: list | None) -> Any:
+    if not images:
+        return user
+    blocks: list[dict[str, Any]] = [
+        {"type": "image", "source": {"type": "base64", "media_type": im.mime, "data": im.b64()}} for im in images
+    ]
+    blocks.append({"type": "text", "text": user})
+    return blocks
+
+
+# --------------------------------------------------------------------------- OpenAI and OpenAI-compatible
+OPENAI_BASE = "https://api.openai.com/v1"
+OPENAI_DEFAULT_MODEL = "gpt-5-mini"
+
+
+class OpenAIProvider:
+    """Chat Completions over plain HTTPS: OpenAI itself, or any server that speaks the same protocol.
+
+    JSON mode (`response_format: json_object`) is requested; servers that reject it get the request again
+    without it (the system prompt already demands one JSON object, and the validator checks the answer)."""
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str | None = None,
+        *,
+        name: str = "openai",
+        base_url: str = OPENAI_BASE,
+        vision: bool = True,
+        transport: Transport | None = None,
+        retries: int = 2,
+        allow_http: bool = False,
+    ):
+        self.name = name
+        self._key = api_key
+        self.model = model or os.environ.get("DUOSIM_OPENAI_MODEL") or OPENAI_DEFAULT_MODEL
+        self._base = base_url.rstrip("/")
+        self.vision = vision
+        self._retries = retries
+        self._json_mode = True
+        self._official = self._base == OPENAI_BASE
+        if transport is None:
+            transport = _urllib_transport if not allow_http else _plain_transport
+        self._transport = transport
+
+    def generate(
+        self, system: str, user: str, *, schema: dict | None = None, timeout: float = 120.0, images: list | None = None
+    ) -> LLMResult:
+        content: Any = user
+        if images:
+            content = [{"type": "image_url", "image_url": {"url": im.data_url()}} for im in images]
+            content.append({"type": "text", "text": user})
+        body: dict[str, Any] = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": content}],
+        }
+        # OpenAI's current models take max_completion_tokens; most compatible servers still read max_tokens
+        body["max_completion_tokens" if self._official else "max_tokens"] = MAX_OUTPUT_TOKENS
+        if self._json_mode:
+            body["response_format"] = {"type": "json_object"}
+        headers = {"content-type": "application/json"}
+        if self._key:
+            headers["authorization"] = f"Bearer {self._key}"
+        url = f"{self._base}/chat/completions"
+        deadline = time.monotonic() + timeout
+        t0 = time.perf_counter()
+        attempt, status, raw = 0, 0, b""
+        while True:
+            left = deadline - time.monotonic()
+            if left < 1.0:
+                raise LLMError(f"{self.name} did not answer within {timeout:.0f}s; try again shortly")
+            try:
+                status, raw = self._transport(url, headers, json.dumps(body).encode(), left)
+            except LLMError:
+                status, raw = 0, b""
+                if attempt >= self._retries:
+                    raise
+            if status == 400 and "response_format" in body and b"response_format" in raw[:2000]:
+                del body["response_format"]  # this server has no JSON mode
+                self._json_mode = False
+                continue
+            if (status not in RETRY_STATUS and status != 0) or attempt >= self._retries:
+                break
+            attempt += 1
+            time.sleep(max(0.0, min(1.5 * attempt, deadline - time.monotonic() - 1.0)))
+        dt = time.perf_counter() - t0
+        try:
+            data = json.loads(raw or b"{}")
+        except ValueError:
+            data = {}
+        if status != 200:
+            err = data.get("error") if isinstance(data, dict) else None
+            msg = err.get("message") if isinstance(err, dict) else (err or raw[:200].decode(errors="replace"))
+            hint = {
+                401: " (check the API key)",
+                403: " (check the API key)",
+                404: " (check the model name / base URL)",
+                429: " (rate limit / quota)",
+            }.get(status, "")
+            raise LLMError(f"{self.name} API HTTP {status}: {_redact(str(msg), self._key)[:300]}{hint}")
+        choices = data.get("choices") or []
+        if not choices:
+            raise LLMError(f"{self.name} returned no choices")
+        ch = choices[0]
+        msg = ch.get("message") or {}
+        if msg.get("refusal"):
+            raise LLMError(f"{self.name} declined the request")
+        text = msg.get("content") or ""
+        if isinstance(text, list):  # some servers return content parts
+            text = "".join(p.get("text", "") for p in text if isinstance(p, dict))
+        if ch.get("finish_reason") == "length":
+            raise LLMError(f"{self.name}'s answer was cut off (max tokens); simplify the request")
+        if not text.strip():
+            raise LLMError(f"{self.name} returned an empty answer")
+        u = data.get("usage") or {}
+        usage = {"input_tokens": u.get("prompt_tokens"), "output_tokens": u.get("completion_tokens")}
+        return LLMResult(text, self.name, data.get("model") or self.model, round(dt, 3), usage)
+
+
+def _plain_transport(url: str, headers: dict[str, str], body: bytes, timeout: float) -> tuple[int, bytes]:
+    """Operator-configured local endpoints (e.g. Ollama on http://127.0.0.1) may use plain HTTP."""
+    if not url.startswith(("https://", "http://")):
+        raise LLMError("endpoint must be http(s)")
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")  # noqa: S310 - scheme checked
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read() or b""
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        raise LLMError(f"network error talking to the model API: {type(e).__name__}") from None
+
+
 # --------------------------------------------------------------------------- discovery
 def providers_from_env() -> dict[str, Provider]:
-    """Providers whose key is configured.  Never raises."""
+    """Providers whose key is configured.  Never raises.
+
+    DUOSIM_PROVIDERS adds OpenAI-compatible endpoints, e.g.
+      [{"name": "llama", "base_url": "http://127.0.0.1:11434/v1", "model": "llama3.2-vision", "vision": true},
+       {"name": "openrouter", "base_url": "https://openrouter.ai/api/v1", "model": "qwen/qwen3-vl",
+        "api_key_env": "OPENROUTER_API_KEY"}]"""
     out: dict[str, Provider] = {}
     gk = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if gk:
@@ -299,4 +460,46 @@ def providers_from_env() -> dict[str, Provider]:
     ak = os.environ.get("ANTHROPIC_API_KEY")
     if ak:
         out["claude"] = ClaudeProvider(ak, fallbacks=os.environ.get("DUOSIM_CLAUDE_FALLBACKS", "1") != "0")
+    ok = os.environ.get("OPENAI_API_KEY")
+    if ok:
+        out["openai"] = OpenAIProvider(ok)
+    raw = os.environ.get("DUOSIM_PROVIDERS", "").strip()
+    if raw:
+        try:
+            entries = json.loads(raw)
+            assert isinstance(entries, list)
+        except (ValueError, AssertionError):
+            log.warning("DUOSIM_PROVIDERS is not a JSON list; ignored")
+            entries = []
+        for e in entries:
+            try:
+                name, base, model = str(e["name"])[:32], str(e["base_url"]), str(e["model"])
+            except (KeyError, TypeError):
+                log.warning("DUOSIM_PROVIDERS entry needs name, base_url and model; ignored: %r", e)
+                continue
+            key = os.environ.get(str(e.get("api_key_env", "")), "") if e.get("api_key_env") else ""
+            out[name] = OpenAIProvider(
+                key, model, name=name, base_url=base, vision=bool(e.get("vision", False)), allow_http=True
+            )
     return out
+
+
+def provider_from_secret(secret: dict[str, Any]) -> Provider:
+    """A workspace's own provider (bring-your-own-key), from `SaaS.provider_secret`."""
+    t, name, key, model = secret["type"], secret["name"], secret["key"], secret.get("model") or None
+    if t == "gemini":
+        return GeminiProvider(key, model, name=name)
+    if t == "claude":
+        return ClaudeProvider(key, model, name=name)
+    if t == "openai":
+        return OpenAIProvider(key, model, name=name, vision=bool(secret.get("vision", True)))
+    if t == "openai_compatible":
+        return OpenAIProvider(
+            key,
+            model,
+            name=name,
+            base_url=secret["base_url"],
+            vision=bool(secret.get("vision")),
+            allow_http=os.environ.get("DUOSIM_ALLOW_PRIVATE_URLS") == "1",
+        )
+    raise LLMError(f"unknown provider type {t!r}")

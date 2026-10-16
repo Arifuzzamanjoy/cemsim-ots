@@ -15,6 +15,7 @@ Sessions are per workspace, capped in number and idle time.  The cement HMI at `
 from __future__ import annotations
 
 import asyncio
+import os
 import threading
 import time
 import uuid
@@ -24,7 +25,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from .api_design import WS, _limit, _take
+from .api_design import WS, _limit, _plan_of, _take, charge, daily_limit, refund
 from .platform.registry import CommandRejected, SimulatorInstance, default_registry
 from .platform.store import Workspace
 
@@ -112,13 +113,21 @@ async def create_session(body: SessionIn, ws: WS):
         plugin = default_registry().get(body.simulator)
     except KeyError:
         raise HTTPException(404, "no such simulator") from None
-    cap = _limit("DUOSIM_MAX_SESSIONS", 5)
+    plan = _plan_of(ws)
+    cap = _limit("DUOSIM_MAX_SESSIONS", 5) if "DUOSIM_MAX_SESSIONS" in os.environ or plan is None else plan.max_sessions
     with _GUARD:
         _evict(_tenant(ws))
         if len(_SESSIONS.get(_tenant(ws), {})) >= cap:
             raise HTTPException(429, f"at most {cap} concurrent sessions per workspace; delete one first")
-    _take(ws, "session", _limit("DUOSIM_DAILY_SESSIONS", 100))
-    inst = await asyncio.to_thread(plugin.create, body.seed)
+    _take(ws, "session", daily_limit(ws, "DUOSIM_DAILY_SESSIONS", 100))
+    from .saas.plans import credit_costs
+
+    lid = charge(ws, credit_costs()["session"], "session", ref=body.simulator)
+    try:
+        inst = await asyncio.to_thread(plugin.create, body.seed)
+    except Exception:
+        refund(ws, lid, "simulator failed to start")
+        raise
     s = Session(uuid.uuid4().hex[:16], body.simulator, inst)
     with _GUARD:
         _SESSIONS.setdefault(_tenant(ws), {})[s.id] = s

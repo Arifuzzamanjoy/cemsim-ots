@@ -3,6 +3,10 @@
 python -m duosim.platform keys create --workspace acme --label "ci"   # prints the key once
 python -m duosim.platform keys revoke <key-id>
 python -m duosim.platform workspaces
+python -m duosim.platform users list
+python -m duosim.platform users admin <email> [--revoke]
+python -m duosim.platform credits <workspace> <delta> [--note ...]
+python -m duosim.platform plan <workspace> <free|pro|team|enterprise>
 """
 
 from __future__ import annotations
@@ -24,6 +28,18 @@ def main(argv: list[str] | None = None) -> int:
     r = k.add_parser("revoke")
     r.add_argument("key_id")
     sub.add_parser("workspaces")
+    us = sub.add_parser("users").add_subparsers(dest="sub", required=True)
+    us.add_parser("list")
+    ua = us.add_parser("admin")
+    ua.add_argument("email")
+    ua.add_argument("--revoke", action="store_true")
+    cr = sub.add_parser("credits")
+    cr.add_argument("workspace")
+    cr.add_argument("delta", type=int)
+    cr.add_argument("--note", default="operator adjustment")
+    pl = sub.add_parser("plan")
+    pl.add_argument("workspace")
+    pl.add_argument("plan")
     sub.add_parser("simulators")
     n = sub.add_parser("new")
     n.add_argument("id")
@@ -39,6 +55,8 @@ def main(argv: list[str] | None = None) -> int:
         return _sim_commands(a)
 
     st = Store()
+    if a.cmd in ("users", "credits", "plan"):
+        return _saas_commands(a, st)
     if a.cmd == "keys" and a.sub == "create":
         ws = st.workspace(a.workspace)
         assert ws is not None
@@ -60,6 +78,41 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{wid}  {name}  active keys: {n}")
         return 0
     return 2
+
+
+def _saas_commands(a, st: Store) -> int:
+    from ..saas import saas_for
+    from ..saas.security import InputError
+
+    s = saas_for(st)
+    if a.cmd == "users" and a.sub == "list":
+        for u in s.list_users(limit=500):
+            flags = ",".join(k for k in ("is_admin", "suspended") if u[k]) or "-"
+            print(f"{u['id']}  {u['email']:40s} {flags}")
+        return 0
+    if a.cmd == "users":
+        u = s.user_by_email(a.email)
+        if u is None:
+            print("no such user", file=sys.stderr)
+            return 1
+        s.set_user_flags(u["id"], is_admin=not a.revoke)
+        print(f"{u['email']}: platform admin {'revoked' if a.revoke else 'granted'}")
+        return 0
+    ws = st.workspace(a.workspace, create=False)
+    if ws is None:
+        print("no such workspace (use its name, see `workspaces`)", file=sys.stderr)
+        return 1
+    try:
+        if a.cmd == "credits":
+            s.grant(ws.id, a.delta, "adjust", "operator", note=a.note)
+            print(f"{ws.name}: balance {s.balance(ws.id)}")
+        else:
+            s.set_plan(ws.id, a.plan, grant=True)
+            print(f"{ws.name}: plan {a.plan}, balance {s.balance(ws.id)}")
+    except InputError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    return 0
 
 
 def _sim_commands(a) -> int:

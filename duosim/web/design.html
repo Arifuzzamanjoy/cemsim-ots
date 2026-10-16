@@ -4,62 +4,85 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DuoSim Studio</title>
+<meta name="robots" content="noindex">
 <style>
-  :root { --bg: #0e1116; --panel: #161b22; --line: #2c3440; --ink: #e8ecf1; --muted: #9aa6b2; --accent: #2f6fb0;
-    --ok: #2fb34a; --bad: #d62f2f; --warn: #e0a526; }
+  :root { --bg: #0b0f17; --panel: #141b29; --panel2: #18212f; --line: #253043; --line2: #31405a; --ink: #e9eef6; --muted: #98a6ba;
+    --accent: #4f8cff; --accent2: #22c3a6; --ok: #2fbf71; --bad: #f05252; --warn: #f0a92e; color-scheme: dark; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
-    font: 13px/1.4 "Segoe UI", Tahoma, Arial, sans-serif; }
+    font: 13px/1.45 Inter, "Segoe UI", system-ui, Tahoma, Arial, sans-serif; }
+  a { color: var(--accent); }
   #app { display: grid; grid-template-rows: auto 1fr; height: 100vh; gap: 8px; padding: 8px; }
-  .views { display: grid; grid-template-columns: minmax(300px, 380px) 1fr minmax(260px, 340px); gap: 8px; min-height: 0; }
+  .views { display: grid; grid-template-columns: minmax(320px, 390px) 1fr minmax(280px, 360px); gap: 8px; min-height: 0; }
   .views[hidden] { display: none; }
   #view-sims { grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr); }
-  header {  display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--panel);
-    border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; }
-  .brand { font-weight: 800; font-size: 16px; } .brand span { color: #e5484d; }
-  .chip { border: 1px solid var(--line); border-radius: 10px; padding: 1px 8px; color: var(--muted); font-size: 12px; }
-  .chip.ok { color: var(--ok); border-color: var(--ok); } .chip.bad { color: var(--bad); border-color: var(--bad); }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; overflow: auto;
-    min-height: 0; }
-  .panel h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-  textarea, input, select { width: 100%; background: #0b0f14; color: var(--ink); border: 1px solid var(--line);
-    border-radius: 4px; padding: 6px 8px; font: inherit; }
+  #view-history { grid-template-columns: 1fr; }
+  header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--ink); text-decoration: none; letter-spacing: -.02em; }
+  .brand .logo { width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--accent2)); position: relative; }
+  .brand .logo::before, .brand .logo::after { content: ""; position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #fff; top: 7px; }
+  .brand .logo::before { left: 4px; } .brand .logo::after { right: 4px; opacity: .55; }
+  .brand b { color: var(--accent2); } .brand small { color: var(--muted); font-weight: 600; font-size: 12px; margin-left: 2px; }
+  .chip { border: 1px solid var(--line2); border-radius: 99px; padding: 2px 9px; color: var(--muted); font-size: 12px; white-space: nowrap; text-decoration: none; }
+  .chip.ok { color: var(--ok); border-color: rgba(47,191,113,.5); } .chip.bad { color: var(--bad); border-color: rgba(240,82,82,.5); }
+  .chip.brand { color: #a9c6ff; border-color: rgba(79,140,255,.5); } .chip.warn { color: var(--warn); border-color: rgba(240,169,46,.5); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow: auto; min-height: 0; }
+  .panel h3 { margin: 12px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  .panel h3:first-child { margin-top: 0; }
+  textarea, input, select { width: 100%; background: #0a0e15; color: var(--ink); border: 1px solid var(--line2);
+    border-radius: 7px; padding: 7px 9px; font: inherit; }
+  textarea:focus, input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,140,255,.2); }
   textarea { resize: vertical; }
-  #prompt { height: 110px; } #spec { height: 240px; font: 12px/1.35 ui-monospace, Consolas, monospace; }
-  button { background: #28313d; color: var(--ink); border: 1px solid #3b4756; border-radius: 4px; padding: 6px 12px;
-    font: inherit; cursor: pointer; }
-  button:hover:not(:disabled) { background: #33404f; } button:disabled { opacity: .5; cursor: default; }
-  button.primary { background: var(--accent); border-color: #4a8bd0; font-weight: 600; }
+  #prompt { height: 96px; } #spec { height: 200px; font: 12px/1.35 ui-monospace, Consolas, monospace; }
+  button { background: var(--panel2); color: var(--ink); border: 1px solid var(--line2); border-radius: 7px; padding: 7px 12px;
+    font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { background: #222d40; } button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: linear-gradient(135deg, var(--accent), #3a73e0); border-color: transparent; color: #fff; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; align-items: center; }
-  .row > * { flex: 0 0 auto; } .row > select { width: auto; } .row > input { flex: 1 1 140px; }
-  .ex { font-size: 12px; padding: 2px 8px; }
-  #status { min-height: 18px; color: var(--muted); } #status.err { color: var(--bad); } #status.ok { color: var(--ok); }
+  .row > * { flex: 0 0 auto; } .row > select { width: auto; } .row > input { flex: 1 1 140px; } .row > .grow { flex: 1 1 auto; }
+  .ex { font-size: 12px; padding: 3px 9px; font-weight: 500; }
+  #status { min-height: 18px; color: var(--muted); margin-top: 6px; } #status.err { color: var(--bad); } #status.ok { color: var(--ok); }
   #stage { position: relative; padding: 0; overflow: hidden; }
   #view { position: absolute; inset: 0; }
-  #empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted);
-    text-align: center; padding: 20px; }
+  #empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); text-align: center; padding: 20px; }
+  #busy { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); background: rgba(20,27,41,.92); border: 1px solid var(--line2);
+    border-radius: 99px; padding: 6px 14px; display: none; }
+  #busy.on { display: block; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  td, th { padding: 2px 4px; border-bottom: 1px solid var(--line); text-align: left; }
-  td.n { text-align: right; font-family: ui-monospace, Consolas, monospace; }
-  th.n { text-align: right; }
-  input[type=checkbox] { width: auto; }
+  td, th { padding: 3px 5px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  td.n { text-align: right; font-family: ui-monospace, Consolas, monospace; } th.n { text-align: right; }
+  input[type=checkbox] { width: auto; accent-color: var(--accent); }
   .pass { color: var(--ok); } .fail { color: var(--bad); font-weight: 600; }
-  #shot { width: 100%; border: 1px solid var(--line); border-radius: 4px; margin-top: 6px; display: none; }
+  #shot { width: 100%; border: 1px solid var(--line); border-radius: 6px; margin-top: 6px; display: none; }
   ul.msg { margin: 4px 0; padding-left: 18px; } ul.msg li { margin: 2px 0; }
   .tabs { display: flex; gap: 4px; }
-  .tab.on { background: var(--accent); border-color: #4a8bd0; }
-  header a { color: var(--muted); }
+  .tab.on, .itab.on { background: var(--accent); border-color: transparent; color: #fff; }
   .muted { color: var(--muted); }
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
-  .card { border: 1px solid var(--line); border-radius: 6px; padding: 10px; background: #0f141a; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #0f141e; }
   .card.featured { border-color: #4a8bd0; }
   .card h4 { margin: 0 0 4px; font-size: 14px; }
   .badge { font-size: 11px; border-radius: 8px; padding: 0 6px; margin-left: 6px; border: 1px solid var(--line); color: var(--muted); }
   .badge.demo { color: #e0a526; border-color: #e0a526; }
   #con-tags { margin-top: 8px; } #con-cmds form { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin: 4px 0; }
   #con-cmds input[type=number], #con-cmds input[type=text] { width: 90px; }
-  #sims, #console { max-height: calc(100vh - 90px); }
-  @media (max-width: 1000px) {
+  .itabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 8px; }
+  .pane[hidden] { display: none; }
+  .drop { border: 1.5px dashed var(--line2); border-radius: 8px; padding: 14px; text-align: center; color: var(--muted); cursor: pointer; background: #0c111a; }
+  .drop.over { border-color: var(--accent); color: var(--ink); }
+  .thumbs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .thumbs figure { margin: 0; position: relative; } .thumbs img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line2); display: block; }
+  .thumbs button { position: absolute; top: -6px; right: -6px; padding: 0 6px; border-radius: 99px; font-size: 11px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; } label.s { font-size: 11.5px; color: var(--muted); display: block; margin-bottom: 2px; }
+  .cost { font-weight: 700; color: #cfe0ff; }
+  .trace li { list-style: none; margin: 0 0 4px; padding-left: 16px; position: relative; }
+  .trace li::before { content: "●"; position: absolute; left: 0; font-size: 9px; top: 3px; color: var(--muted); }
+  .trace li.ok::before { color: var(--ok); } .trace li.failed::before { color: var(--bad); } .trace li.info::before { color: var(--accent); } .trace li.skipped::before { color: #556; }
+  .trace { padding: 0; margin: 4px 0; }
+  .score { font-size: 22px; font-weight: 800; } .finding { font-size: 12px; margin: 3px 0; } .finding.error { color: #ffb0b0; } .finding.warn { color: #ffd38a; }
+  #account a { text-decoration: none; }
+  @media (max-width: 1100px) {
     #app { grid-template-rows: auto auto; height: auto; }
     .views, #view-sims { grid-template-columns: 1fr; }
     #stage { min-height: 55vh; }
@@ -72,33 +95,70 @@
 <body>
 <div id="app">
   <header>
-    <span class="brand">Cem<span>Sim</span> Studio</span>
+    <a class="brand" href="/" title="DuoSim home"><span class="logo"></span>Duo<b>Sim</b><small>Studio</small></a>
     <nav class="tabs">
       <button class="tab on" data-view="design">Design</button>
+      <button class="tab" data-view="history">My designs</button>
       <button class="tab" data-view="sims">Simulators</button>
     </nav>
     <span class="chip" id="chip-freecad">FreeCAD: ?</span>
     <span class="chip" id="chip-usage">usage: ?</span>
+    <a class="chip brand" id="chip-credits" href="/account#billing" hidden>credits</a>
     <span style="flex:1"></span>
-    <label for="key" class="chip" title="Optional. Platform keys start with cs_. Model keys (Gemini, Claude) live on the server and must never be entered here.">your key (optional)</label>
-    <input id="key" type="password" autocomplete="off" placeholder="cs_...  only for your own workspace" style="width:240px">
-    <a href="/hmi" title="the cement kiln operator HMI, the flagship simulator demo">Cement HMI demo</a>
-    <a href="/3d">3-D plant</a>
+    <span id="account"></span>
+    <span id="keybox">
+      <label for="key" class="chip" title="Optional: a platform API key (ds_...). Model keys (Gemini, Claude, OpenAI) are configured on the server or under Account > Model providers, never here.">API key</label>
+      <input id="key" type="password" autocomplete="off" placeholder="ds_...  optional" style="width:200px">
+    </span>
+    <a href="/hmi" class="chip" title="the cement kiln operator HMI, the flagship simulator demo">Kiln HMI</a>
+    <a href="/3d" class="chip">3-D plant</a>
   </header>
+
   <div id="view-design" class="views">
   <section class="panel" id="left">
-    <h3>Describe what to design</h3>
+    <div class="itabs" role="tablist">
+      <button class="itab on" data-in="text">✎ Text</button>
+      <button class="itab" data-in="image">🖼 Image</button>
+      <button class="itab" data-in="cad">⬡ CAD file</button>
+    </div>
+    <h3 id="prompt-label">Describe what to design</h3>
     <textarea id="prompt" maxlength="2000"
       placeholder="e.g. A grate cooler with six undergrate fans, a clinker crusher at the outlet and a vent stack"></textarea>
-    <div class="row">
-      <button class="ex">cyclone preheater</button>
-      <button class="ex">rotary kiln on piers</button>
-      <button class="ex">tank farm</button>
-      <button class="ex">raw mill + filter</button>
+    <div class="pane" id="pane-text">
+      <div class="row">
+        <button class="ex">cyclone preheater</button>
+        <button class="ex">rotary kiln on piers</button>
+        <button class="ex">tank farm</button>
+        <button class="ex">raw mill + filter</button>
+      </div>
+    </div>
+    <div class="pane" id="pane-image" hidden>
+      <div class="drop" id="drop" tabindex="0">Drop photos, sketches or drawings here, or click to choose (up to 4, PNG / JPEG / WebP, 6 MB each)</div>
+      <input type="file" id="img-file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+    <div class="pane" id="pane-cad" hidden>
+      <div class="drop" id="cad-drop" tabindex="0">Drop a CAD file here, or click to choose<br><span class="muted" id="cad-formats">STEP · FCStd · STL · OBJ · DXF</span></div>
+      <input type="file" id="cad-file" hidden>
+      <div id="cad-name" class="muted" style="margin-top:4px"></div>
+      <div class="grid2" style="margin-top:6px">
+        <div><label class="s" for="cad-units">Units</label><select id="cad-units"><option value="auto">auto</option><option>mm</option><option>cm</option><option>m</option><option>in</option><option>ft</option></select></div>
+        <div><label class="s" for="cad-up">Up axis</label><select id="cad-up"><option value="auto">auto</option><option value="z">Z up</option><option value="y">Y up</option></select></div>
+        <div><label class="s" for="cad-height">DXF extrusion (m)</label><input id="cad-height" type="number" value="3" min="0.01" max="500" step="0.1"></div>
+        <div><label class="s">&nbsp;</label><label class="row" style="margin:0"><input type="checkbox" id="cad-refine"> refine with AI</label></div>
+      </div>
+      <div class="muted" style="font-size:11.5px;margin-top:4px">With "refine", the text above is the instruction (e.g. "name the parts, add a stack and connect the fan").</div>
+    </div>
+    <h3>Agent</h3>
+    <div class="grid2">
+      <div><label class="s" for="mode">Reasoning depth</label><select id="mode" title="how much the agent plans, checks and repairs">
+        <option value="fast">Fast: one shot</option><option value="standard" selected>Standard: plan, critique, repair</option><option value="deep">Deep: candidates, visual judge</option></select></div>
+      <div><label class="s" for="provider">Model</label><select id="provider" title="language model"></select></div>
     </div>
     <div class="row">
-      <select id="provider" title="language model"></select>
-      <button id="go" class="primary">Design &amp; build</button>
+      <label class="row" style="margin:0"><input type="checkbox" id="build" checked> build &amp; verify in FreeCAD</label>
+      <span class="grow"></span>
+      <button id="go" class="primary">Design &amp; build <span class="cost" id="cost"></span></button>
     </div>
     <div id="status"></div>
     <h3>Design spec (editable JSON)</h3>
@@ -110,24 +170,42 @@
   <section class="panel" id="stage">
     <div id="view"></div>
     <div id="empty">Your design appears here, built in FreeCAD and checked against the spec.</div>
+    <div id="busy">working…</div>
   </section>
 
   <section class="panel" id="right">
     <h3>Verification</h3>
     <div id="verdict" class="chip">no design yet</div>
     <table id="checks"><thead><tr><th>part</th><th>kind</th><th class="n">vol. m³</th><th>check</th></tr></thead><tbody></tbody></table>
-    <h3 style="margin-top:12px">FreeCAD render</h3>
+    <div id="agent-box" hidden>
+      <h3>Agent reasoning</h3>
+      <div class="row"><span class="score" id="critic-score">-</span><span class="muted" id="critic-sub"></span></div>
+      <div id="plan"></div>
+      <div id="findings"></div>
+      <div id="judge"></div>
+      <details><summary class="muted">Trace</summary><ul class="trace" id="trace"></ul></details>
+    </div>
+    <div id="import-box" hidden><h3>Import report</h3><div id="import-report" class="muted"></div></div>
+    <h3>FreeCAD render</h3>
     <img id="shot" alt="FreeCAD isometric view of the built design">
-    <h3 style="margin-top:12px">Downloads</h3>
+    <h3>Downloads</h3>
     <div class="row" id="downloads"></div>
   </section>
+  </div>
+
+  <div id="view-history" class="views" hidden>
+    <section class="panel">
+      <h3>My designs</h3>
+      <p class="muted" id="hist-note">Every design of this workspace, newest first.</p>
+      <table id="hist"><thead><tr><th>name</th><th>prompt</th><th>model</th><th>verified</th><th>created</th><th></th></tr></thead><tbody></tbody></table>
+    </section>
   </div>
 
   <div id="view-sims" class="views" hidden>
     <section class="panel" id="sims">
       <h3>Simulators on this platform</h3>
       <p class="muted">Each simulator is a plug-in with its own tags and commands. The cement kiln line is the flagship
-        demo; the same runtime serves any other plug-in. Generate a 3-D model of any of them in the Design tab.</p>
+        demo. The same runtime serves every other plug-in. You can generate a 3-D model of any of them in the Design tab.</p>
       <div id="cards" class="cards"></div>
     </section>
     <section class="panel" id="console" hidden>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DuoSim — Sign in</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/static/saas.css">
+</head>
+<body>
+<main class="auth">
+  <div class="left">
+    <a class="brand" href="/"><span class="logo"></span>Duo<b>Sim</b></a>
+    <form id="form" novalidate>
+      <h1 id="title">Sign in</h1>
+      <p class="muted" id="subtitle">Welcome back.</p>
+      <div id="notice"></div>
+      <div class="field" id="f-name"><label for="name">Your name</label><input id="name" autocomplete="name" maxlength="80"></div>
+      <div class="field" id="f-email"><label for="email">Work email</label><input id="email" type="email" autocomplete="email" required maxlength="254"></div>
+      <div class="field" id="f-password"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required maxlength="256" minlength="10">
+        <div class="faint" id="pw-hint" style="font-size:12px;margin-top:6px">At least 10 characters.</div></div>
+      <div class="field row" id="f-terms" style="align-items:flex-start;flex-wrap:nowrap"><input id="terms" type="checkbox" style="margin-top:4px">
+        <label for="terms" style="font-weight:500;margin:0">I agree to the <a href="/terms" target="_blank">Terms of Service</a> and the <a href="/privacy" target="_blank">Privacy Policy</a>.</label></div>
+      <button class="btn primary block lg" id="submit" type="submit">Sign in</button>
+      <div class="alt" id="alt"></div>
+    </form>
+  </div>
+  <aside class="right">
+    <blockquote>"We went from a one-line brief to a reviewed STEP layout of a preheater tower before the coffee was ready."</blockquote>
+    <p class="muted">Design by text, image or CAD. Every part is verified in FreeCAD. Then simulate the plant.</p>
+    <div class="shot" style="margin-top:20px;max-width:520px"><div class="bar"><i></i><i></i><i></i></div>
+      <img src="/static/assets/img/design_gemini_preheater.jpg" alt="A two-stage cyclone preheater designed from a prompt and rendered in FreeCAD" width="1280" height="720"></div>
+  </aside>
+</main>
+<script type="module" src="/static/auth.js"></script>
+</body>
+</html>

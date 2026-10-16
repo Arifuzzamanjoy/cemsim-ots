@@ -91,6 +91,7 @@ def test_every_design_route_requires_an_api_key(env):
     ]:
         r = getattr(h, method)(path, **({"json": {}} if method == "post" else {}))
         assert r.status_code == 401, (method, path, r.status_code)
+    assert h.get("/api/design/status", headers=H("ds_wrong")).status_code == 401
     assert h.get("/api/design/status", headers=H("cs_wrong")).status_code == 401
     assert h.get("/api/design/status", headers=H("not-even-prefixed")).status_code == 401
 
@@ -180,8 +181,12 @@ def test_build_endpoint_builds_an_edited_spec(env):
 
 
 def test_oversized_bodies_are_refused_before_any_work(env):
-    big = {"prompt": "x", "pad": "y" * 1_100_000}
-    r = env["http"].post("/api/design/generate", json=big, headers=H(env["k_acme"]))
+    big = {"spec": SPEC, "pad": "y" * 1_100_000}  # JSON routes: 1 MB
+    r = env["http"].post("/api/design/build", json=big, headers=H(env["k_acme"]))
+    assert r.status_code == 413 and env["builder"].built == []
+    # generation carries reference images (4 x 6 MB, base64): its own, larger, still bounded limit
+    huge = {"prompt": "x", "pad": "y" * (api_design.MAX_GENERATE_BODY + 1)}
+    r = env["http"].post("/api/design/generate", json=huge, headers=H(env["k_acme"]))
     assert r.status_code == 413
     assert env["prov"].prompts == []
 
@@ -205,8 +210,8 @@ def test_chunked_uploads_cannot_bypass_the_size_limit(env):
 
     def body():
         yield b'{"prompt": "x", "pad": "'
-        for _ in range(40):
-            yield b"y" * 50_000
+        for _ in range(api_design.MAX_GENERATE_BODY // 1_000_000 + 2):
+            yield b"y" * 1_000_000
         yield b'"}'
 
     r = env["http"].post(
