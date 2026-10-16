@@ -140,3 +140,9 @@ def test_save_file_uses_validated_names():
         sim.load_file("pytest_tmp_state")
     finally:
         path.unlink(missing_ok=True)
+
+
+def test_static_files_are_revalidated_not_heuristically_cached(client):
+    r = client.get("/static/design.js")
+    assert r.status_code == 200 and r.headers["cache-control"] == "no-cache" and r.headers.get("etag")
+    assert client.get("/static/design.js", headers={"If-None-Match": r.headers["etag"]}).status_code == 304

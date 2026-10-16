@@ -377,7 +377,18 @@ async def plant3d():
     return FileResponse(WEB / "plant3d.html")
 
 
-app.mount("/static", StaticFiles(directory=WEB), name="static")
+class RevalidatedStatic(StaticFiles):
+    """Static files that the browser must revalidate (ETag -> 304) on every use.  Without a Cache-Control header
+    browsers reuse a script for hours by heuristic caching, so after a deploy the (never cached) HTML pairs with an
+    old script, e.g. one that does not send the CSRF header the new server requires."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/static", RevalidatedStatic(directory=WEB), name="static")
 
 
 def main():
