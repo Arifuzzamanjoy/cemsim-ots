@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>DuoSim — Account</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/static/saas.css">
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="shell">
+  <aside class="side" id="side">
+    <a href="#overview" data-s="overview">◫ Overview</a>
+    <a href="#billing" data-s="billing">◈ Billing &amp; credits</a>
+    <a href="#team" data-s="team">☺ Team</a>
+    <div class="sep"></div>
+    <a href="#keys" data-s="keys">⚿ API keys</a>
+    <a href="#providers" data-s="providers">◎ Model providers</a>
+    <a href="#webhooks" data-s="webhooks">⇄ Webhooks</a>
+    <div class="sep"></div>
+    <a href="#profile" data-s="profile">⚙ Profile &amp; security</a>
+    <a href="#audit" data-s="audit">☰ Audit log</a>
+  </aside>
+  <main class="main">
+    <div id="banner"></div>
+
+    <section id="s-overview">
+      <h1 id="hello">Overview</h1>
+      <div class="grid g4" style="margin:18px 0">
+        <div class="card stat"><div class="k">Credits left</div><div class="v" id="ov-credits">-</div><div class="usage-bar" style="margin-top:10px"><i id="ov-bar" style="width:0"></i></div></div>
+        <div class="card stat"><div class="k">Plan</div><div class="v" id="ov-plan">-</div><div class="faint" id="ov-plan-sub"></div></div>
+        <div class="card stat"><div class="k">Spent (30 days)</div><div class="v" id="ov-spent">-</div><div class="faint">credits</div></div>
+        <div class="card stat"><div class="k">Seats</div><div class="v" id="ov-seats">-</div><div class="faint" id="ov-role"></div></div>
+      </div>
+      <div class="grid g2">
+        <div class="card"><h3>Usage by operation (30 days)</h3><div class="bars" id="ov-bars" style="margin:18px 0 30px"></div></div>
+        <div class="card"><h3>Get started</h3>
+          <div class="grid" style="gap:10px;margin-top:12px">
+            <a class="btn" href="/app">Design from text, image or CAD →</a>
+            <a class="btn" href="/hmi">Run the cement kiln simulator →</a>
+            <a class="btn" href="#keys">Create an API key →</a>
+            <a class="btn" href="/docs" target="_blank" rel="noopener">Read the API reference →</a>
+          </div>
+        </div>
+      </div>
+      <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Workspaces</h3>
+        <form class="row" id="new-ws"><input id="new-ws-name" placeholder="New workspace name" maxlength="60" style="width:220px"><button class="btn sm">Create</button></form></div>
+        <div class="table-wrap"><table class="t" style="margin-top:10px"><thead><tr><th>Workspace</th><th>Plan</th><th>Your role</th><th></th></tr></thead><tbody id="ws-list"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="s-billing">
+      <h1>Billing &amp; credits</h1>
+      <p class="muted" id="bill-sub"></p>
+      <div class="grid g4" id="bill-plans" style="margin:18px 0"></div>
+      <div class="grid g2">
+        <div class="card"><h3>Top up credits</h3><p class="muted">Credit packs never expire while your workspace is active.</p><div class="row" id="bill-packs"></div></div>
+        <div class="card"><h3>Invoices &amp; payment</h3><p class="muted">Update the payment method, download invoices or cancel in the billing portal.</p><button class="btn" id="portal">Open billing portal</button></div>
+      </div>
+      <div class="card"><h3>Credit ledger</h3>
+        <div class="table-wrap"><table class="t"><thead><tr><th>When</th><th>What</th><th>Note</th><th class="n">Change</th><th class="n">Balance</th></tr></thead><tbody id="ledger"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="s-team">
+      <h1>Team</h1>
+      <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Workspace name</h3></div>
+        <form class="row" id="rename" style="margin-top:10px"><input class="grow" id="ws-name" maxlength="60"><button class="btn">Save</button></form></div>
+      <div class="card"><h3>Members</h3>
+        <div class="table-wrap"><table class="t"><thead><tr><th>Member</th><th>Role</th><th>Joined</th><th></th></tr></thead><tbody id="members"></tbody></table></div>
+        <form class="row" id="invite" style="margin-top:16px"><input class="grow" id="inv-email" type="email" placeholder="colleague@company.com" required>
+          <select id="inv-role" style="width:130px"><option value="member">Member</option><option value="admin">Admin</option></select><button class="btn primary">Invite</button></form>
+        <div id="invites" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+    <section id="s-keys">
+      <h1>API keys</h1>
+      <p class="muted">Keys authenticate scripts and integrations against the REST API (<code>X-API-Key: ds_…</code>). They act on this workspace and spend its credits. The key is shown only once.</p>
+      <div class="card"><form class="row" id="new-key"><input class="grow" id="key-label" placeholder="Label, e.g. CI pipeline" maxlength="80"><button class="btn primary">Create key</button></form>
+        <div id="key-new" style="margin-top:12px"></div>
+        <div class="table-wrap"><table class="t" style="margin-top:12px"><thead><tr><th>Label</th><th>Created</th><th>Status</th><th></th></tr></thead><tbody id="keys"></tbody></table></div>
+      </div>
+      <div class="card"><h3>Quick start</h3><pre class="secret" style="user-select:text;white-space:pre-wrap" id="curl"></pre></div>
+    </section>
+
+    <section id="s-providers">
+      <h1>Model providers</h1>
+      <p class="muted">Bring your own model keys (Pro and above). Keys are encrypted at rest (AES-256-GCM), never shown again, and design calls that use them cost fewer credits. They appear in the Studio's model list.</p>
+      <div class="card"><h3>Add a provider</h3>
+        <form id="new-prov" class="grid g2" style="gap:12px;margin-top:10px">
+          <div><label for="pv-name">Name in the Studio</label><input id="pv-name" required maxlength="40" placeholder="my-openai"></div>
+          <div><label for="pv-type">Type</label><select id="pv-type"><option value="openai">OpenAI</option><option value="claude">Anthropic Claude</option><option value="gemini">Google Gemini</option><option value="openai_compatible">OpenAI-compatible endpoint</option></select></div>
+          <div><label for="pv-model">Model</label><input id="pv-model" maxlength="120" placeholder="default for the type"></div>
+          <div id="pv-base-f"><label for="pv-base">Base URL (https)</label><input id="pv-base" maxlength="500" placeholder="https://openrouter.ai/api/v1"></div>
+          <div><label for="pv-key">API key</label><input id="pv-key" type="password" required maxlength="400" autocomplete="off"></div>
+          <div class="row" style="align-items:flex-end"><label class="row" style="margin:0"><input type="checkbox" id="pv-vision" checked> accepts images</label><span class="grow"></span><button class="btn primary">Add provider</button></div>
+        </form></div>
+      <div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>Name</th><th>Type</th><th>Model</th><th>Key</th><th>Images</th><th></th></tr></thead><tbody id="providers"></tbody></table></div></div>
+    </section>
+
+    <section id="s-webhooks">
+      <h1>Webhooks</h1>
+      <p class="muted">DuoSim POSTs signed JSON to your endpoint when designs finish. Verify <code>DuoSim-Signature: t=…,v1=…</code> as HMAC-SHA256 of <code>"t.body"</code> with the endpoint secret.</p>
+      <div class="card"><form class="row" id="new-hook"><input class="grow" id="hook-url" type="url" placeholder="https://example.com/duosim-hook" required>
+        <select id="hook-events" multiple size="3" style="width:220px"></select><button class="btn primary">Add endpoint</button></form>
+        <div id="hook-new" style="margin-top:12px"></div>
+        <div class="table-wrap"><table class="t" style="margin-top:12px"><thead><tr><th>URL</th><th>Events</th><th>Last delivery</th><th></th></tr></thead><tbody id="hooks"></tbody></table></div></div>
+    </section>
+
+    <section id="s-profile">
+      <h1>Profile &amp; security</h1>
+      <div class="grid g2">
+        <div class="card"><h3>Profile</h3><form id="profile"><div class="field"><label for="pf-name">Name</label><input id="pf-name" maxlength="80"></div>
+          <div class="field"><label>Email</label><div class="row"><span id="pf-email"></span><span id="pf-verified"></span></div></div><button class="btn">Save</button></form></div>
+        <div class="card"><h3>Password</h3><form id="pw"><div class="field"><label for="pw-cur">Current password</label><input id="pw-cur" type="password" autocomplete="current-password" required></div>
+          <div class="field"><label for="pw-new">New password</label><input id="pw-new" type="password" autocomplete="new-password" minlength="10" required></div><button class="btn">Change password</button></form></div>
+      </div>
+      <div class="card"><h3>Your data</h3><p class="muted">Download everything DuoSim stores about you, or erase your account. Workspaces you own alone are deleted with their designs, and shared workspaces are handed to another member.</p>
+        <div class="row"><a class="btn" href="/api/account/export" download>Export my data (JSON)</a>
+          <form class="row" id="del"><input id="del-pw" type="password" placeholder="password" style="width:170px" required><input id="del-confirm" placeholder="type DELETE" style="width:130px" required><button class="btn danger">Delete account</button></form></div></div>
+    </section>
+
+    <section id="s-audit">
+      <h1>Audit log</h1><p class="muted">Security-relevant actions in this workspace (admins).</p>
+      <div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Details</th></tr></thead><tbody id="audit"></tbody></table></div></div>
+    </section>
+  </main>
+</div>
+<script type="module" src="/static/account.js"></script>
+</body>
+</html>

@@ -1,11 +1,11 @@
-"""Browser end-to-end of the Studio (main page `/`) against a real FreeCAD worker.
+"""Browser end-to-end of the Studio (`/app`) against a real FreeCAD worker.
 
-Self-contained: starts a FreeCAD worker and two CemSim servers (API-key mode and dev-open mode),
+Self-contained: starts a FreeCAD worker and two DuoSim servers (API-key mode and dev-open mode),
 drives the page in headless Chromium and checks what a user sees.  No LLM credits are spent: the
 spec is pasted in and built through "Build edited spec" (the model path is covered by
 tests/integration/test_06_design_build.py).
 
-Usage: CEMSIM_FREECAD=/opt/freecad-1.1.4 python tests/validation/e2e_design.py [screenshot_dir]
+Usage: DUOSIM_FREECAD=/opt/freecad-1.1.4 python tests/validation/e2e_design.py [screenshot_dir]
 """
 
 import asyncio
@@ -21,8 +21,8 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from cemsim.freecad_worker import FreeCADWorker, free_port
-from cemsim.platform.store import Store
+from duosim.freecad_worker import FreeCADWorker, free_port
+from duosim.platform.store import Store
 from tests.integration.pngstat import decode
 
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else None
@@ -96,15 +96,15 @@ def start_server(port, fc_port, token, data_dir, dev_open, public=False):
     env = {
         **os.environ,
         "FREECAD_MCP_TOKEN": token,
-        "CEMSIM_DATA_DIR": str(data_dir),
-        "CEMSIM_DEV_OPEN": "1" if dev_open else "",
-        "CEMSIM_PUBLIC_DEMO": "1" if public else "",
+        "DUOSIM_DATA_DIR": str(data_dir),
+        "DUOSIM_DEV_OPEN": "1" if dev_open else "",
+        "DUOSIM_PUBLIC_DEMO": "1" if public else "",
         "GEMINI_API_KEY": "",  # no provider: the page must say so, and building must still work
         "ANTHROPIC_API_KEY": "",
-        "CEMSIM_ENV_FILE": os.devnull,
+        "DUOSIM_ENV_FILE": os.devnull,
     }
     p = subprocess.Popen(
-        [sys.executable, "-m", "cemsim.server", "--port", str(port), "--freecad", f"127.0.0.1:{fc_port}"],
+        [sys.executable, "-m", "duosim.server", "--port", str(port), "--freecad", f"127.0.0.1:{fc_port}"],
         env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
@@ -116,7 +116,7 @@ def start_server(port, fc_port, token, data_dir, dev_open, public=False):
 async def drive(base, key=None, expect_key_prompt=False):
     async with async_playwright() as p:
         b = await p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        ctx = await b.new_context(viewport={"width": 1500, "height": 850}, accept_downloads=True)
+        ctx = await b.new_context(bypass_csp=True, viewport={"width": 1500, "height": 850}, accept_downloads=True)
         pg = await ctx.new_page()
         errors, dialogs = [], []
         pg.on("pageerror", lambda e: errors.append(str(e)))
@@ -128,7 +128,7 @@ async def drive(base, key=None, expect_key_prompt=False):
             ),
         )
         pg.on("dialog", lambda d: (dialogs.append(d.message), asyncio.ensure_future(d.dismiss())))
-        await pg.goto(f"{base}/")
+        await pg.goto(f"{base}/app")
 
         if expect_key_prompt:
             await pg.wait_for_function(
@@ -199,11 +199,11 @@ async def drive_studio(base, shot_dir=None):
     """Public-demo instance: no key needed; key hygiene; simulator gallery + live console; HMI round trip."""
     async with async_playwright() as p:
         b = await p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        pg = await (await b.new_context(viewport={"width": 1500, "height": 850})).new_page()
+        pg = await (await b.new_context(bypass_csp=True, viewport={"width": 1500, "height": 850})).new_page()
         sent_keys, errors = [], []
         pg.on("request", lambda r: sent_keys.append(r.headers.get("x-api-key")) if r.headers.get("x-api-key") else None)
         pg.on("pageerror", lambda e: errors.append(str(e)))
-        await pg.goto(f"{base}/")
+        await pg.goto(f"{base}/app")
         await pg.wait_for_function(
             "document.querySelector('#chip-usage').textContent.includes('public demo')", timeout=30000
         )
@@ -218,7 +218,7 @@ async def drive_studio(base, shot_dir=None):
         await pg.wait_for_function(
             "document.querySelector('#status').textContent.includes('not a platform key')", timeout=5000
         )
-        stored = await pg.evaluate("sessionStorage.getItem('cemsim_key')")
+        stored = await pg.evaluate("sessionStorage.getItem('duosim_key')")
         check("model key refused with an explanation", stored is None and await pg.input_value("#key") == "")
         await pg.reload()
         await pg.wait_for_function(
@@ -277,13 +277,13 @@ async def drive_studio(base, shot_dir=None):
         await pg.wait_for_selector("#navStudio", timeout=15000)
         await pg.click("#navStudio")
         await pg.wait_for_selector("#chip-freecad", timeout=15000)
-        check("HMI -> Studio navigation", pg.url.rstrip("/") == base.rstrip("/"), pg.url)
+        check("HMI -> Studio navigation", pg.url.rstrip("/") == base.rstrip("/") + "/app", pg.url)
         check("no page errors", not errors, "; ".join(errors[:3]))
         await b.close()
 
 
 async def main():
-    home = Path(tempfile.mkdtemp(prefix="cemsim-e2e-"))
+    home = Path(tempfile.mkdtemp(prefix="duosim-e2e-"))
     data = home / "data"
     fc_port, srv_key, srv_open = free_port(), free_port(), free_port()
     procs = []

@@ -1,0 +1,25 @@
+# FreeCAD worker for the Design Studio: a real FreeCAD on a virtual display with the FreeCAD-MCP addon.
+# Install:  sudo cp deploy/systemd/duosim-freecad.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#           sudo systemctl enable --now duosim-freecad
+# Needs /etc/duosim/freecad_token (docs/DEPLOYMENT.md).  Loopback only: the app on the same host talks to it.
+[Unit]
+Description=DuoSim FreeCAD worker (FreeCAD GUI on Xvfb + FreeCAD-MCP addon)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/SIM/cemsim-ots
+Environment=DUOSIM_FREECAD=/opt/freecad-1.1.4
+Environment=PYTHONUNBUFFERED=1
+StateDirectory=duosim
+ExecStart=/home/ubuntu/SIM/cemsim-ots/.venv/bin/python -m duosim.freecad_worker start --port 9875 --home /var/lib/duosim/freecad --token-file /etc/duosim/freecad_token
+Restart=always
+RestartSec=5
+# FreeCAD spawns children (AppRun, Xvfb); stop all of them, and give FreeCAD time to exit before SIGKILL
+KillMode=control-group
+TimeoutStopSec=40
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,6 @@
 # Security policy
 
-CemSim is a **training simulator**. It must never be connected to a real plant control
+DuoSim is a **training simulator**. It must never be connected to a real plant control
 system.
 
 ## Reporting a vulnerability

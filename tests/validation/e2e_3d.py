@@ -37,7 +37,7 @@ async def main():
     post({"type": "speed", "value": 1})
     async with async_playwright() as p:
         b = await p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        pg = await b.new_page(viewport={"width": 1500, "height": 850})
+        pg = await b.new_page(bypass_csp=True, viewport={"width": 1500, "height": 850})
         errors = []
         pg.on("pageerror", lambda e: errors.append(str(e)))
         pg.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
@@ -170,7 +170,7 @@ async def main():
         check("labels toggle hides value tags", vis == 0, f"{vis} visible")
 
         # HMI integration (production: no FreeCAD controls, 3D button opens the page)
-        hmi = await b.new_page(viewport={"width": 1500, "height": 850})
+        hmi = await b.new_page(bypass_csp=True, viewport={"width": 1500, "height": 850})
         await hmi.goto(f"http://{BASE}/hmi")
         await hmi.wait_for_timeout(1500)
         fc = await hmi.inner_html("#fc-box")

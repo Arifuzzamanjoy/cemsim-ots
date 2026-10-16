@@ -8,9 +8,9 @@ import time
 
 import pytest
 
-from cemsim.freecad_bridge import FreeCADBridge, explain
-from cemsim.freecad_worker import FreeCADWorker, find_freecad
-from cemsim.sim import Simulator
+from duosim.freecad_bridge import FreeCADBridge, explain
+from duosim.freecad_worker import FreeCADWorker, find_freecad
+from duosim.sim import Simulator
 
 pytestmark = pytest.mark.freecad
 
@@ -88,7 +88,7 @@ def test_a_display_that_dies_during_start_up_is_replaced(monkeypatch, tmp_path):
     """Seen when a worker restarts while the previous Xvfb is still shutting down: the display number
     was reported and then the X server died, so FreeCAD could never connect.  The launcher must
     notice and start a new one instead of failing (or reusing the dead display)."""
-    from cemsim import freecad_worker as fw
+    from duosim import freecad_worker as fw
 
     real = fw._start_xvfb
     shown = []

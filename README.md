@@ -1,4 +1,4 @@
-# CemSim OTS — open-source cement kiln-line operator training simulator
+# DuoSim — AI plant design and process simulation
 
 [![CI](https://github.com/Arifuzzamanjoy/cemsim-ots/actions/workflows/ci.yml/badge.svg)](https://github.com/Arifuzzamanjoy/cemsim-ots/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Arifuzzamanjoy/cemsim-ots/actions/workflows/codeql.yml/badge.svg)](https://github.com/Arifuzzamanjoy/cemsim-ots/actions/workflows/codeql.yml)
@@ -7,8 +7,16 @@
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-An open-source operator training simulator (OTS) for the pyro-processing line of a cement
-plant, in the spirit of commercial systems such as KHD Simulex®. It combines:
+DuoSim turns **text, reference images or CAD files** into verified 3-D plant models, and runs **first-principles
+process simulators** for design review and operator training. It is packaged as a commercial SaaS with accounts,
+organisations, credits, Stripe billing, an admin console, API keys, webhooks and bring-your-own model keys
+(**[docs/SAAS.md](docs/SAAS.md)**). Its design agent plans, retrieves equipment patterns, critiques and repairs
+geometry, and checks the result in the CAD kernel and with a vision model (**[docs/AGENT.md](docs/AGENT.md)**).
+
+![DuoSim landing page](docs/images/saas_landing.png)
+
+The flagship simulator is an operator training simulator (OTS) for the pyro-processing line of a cement plant, in
+the spirit of commercial systems such as KHD Simulex®. It combines:
 
 - **Process model:** a first-principles dynamic model of a 3000 t/d kiln line (5-stage
   preheater + calciner, rotary kiln, grate cooler, draught system). It conserves mass and
@@ -22,8 +30,11 @@ plant, in the spirit of commercial systems such as KHD Simulex®. It combines:
 - **FreeCAD link (validated against real FreeCAD):** the live model can be mirrored into FreeCAD through the
   [FreeCAD-MCP](https://github.com/neka-nat/freecad-mcp) addon, and the same FreeCAD can be driven by any
   MCP client. 59 real-FreeCAD tests, no mocks: **[docs/FREECAD_INTEGRATION.md](docs/FREECAD_INTEGRATION.md)**.
-- **Studio (`/`, the main page):** describe equipment in words; Gemini or Claude returns a validated spec, FreeCAD
-  builds it and *measures* the result against the spec (STEP / FCStd / mesh / render).
+- **Studio (`/app`):** describe equipment in words, drop photos or sketches, or import STEP / FCStd / STL / OBJ / DXF
+  (IGES / BREP with a FreeCAD worker). The design agent (Gemini, Claude, OpenAI or any OpenAI-compatible model)
+  returns a validated spec, then FreeCAD builds it and *measures* the result against the spec (STEP / FCStd / mesh / render).
+- **SaaS:** landing page and pricing at `/`, sign-up and sign-in, account (`/account`: billing and credits, team, API keys,
+  model providers, webhooks, privacy) and admin console (`/admin`).
 - **Platform layer:** simulator plug-ins (cement kiln + a second, water-tank simulator), a scaffold generator,
   tenants / API keys / quotas, Docker deployment: **[docs/PLATFORM.md](docs/PLATFORM.md)**.
 
@@ -44,7 +55,7 @@ kiln-inlet and preheater-exit gas analysers, faceplates and the production & qua
 | Trends during a disturbance | Kiln profiles & shell scanner |
 |---|---|
 | ![Trends of burning zone temperature, free lime, kiln drive power and NO after a coal heating value drop](docs/images/hmi_trends.png) | ![Axial gas, bed, brick and shell temperature profiles, shell scanner, cooler and preheater temperatures](docs/images/hmi_kiln_profiles.png) |
-| Main-burner coal heating value drops: burning zone falls 1450 → 1414 °C, free lime rises to 5 %, NO drops (the operator's early warning). | Gas / material / brick / shell temperatures along the kiln, shell scanner, cooler and preheater profiles. |
+| Main-burner coal heating value drops: within 45 minutes the burning zone falls 1450 → 1407 °C, free lime rises from 1.8 to 5.8 % and NO drops from 654 to 216 ppm (the operator's early warning). | Gas / material / brick / shell temperatures along the kiln, shell scanner, cooler and preheater profiles. |
 
 ![Trainer station with simulation control, filesets, lab results and the disturbance catalogue](docs/images/hmi_trainer.png)
 *Trainer station: speed-up, filesets (saved plant states), lab samples and the disturbance catalogue.*
@@ -63,7 +74,7 @@ temperature-tinted cyclones and calciner, stack plume and live value tags.*
 ### Design Studio and the FreeCAD link
 
 ![Design Studio: prompt, validated spec, FreeCAD-built model in three.js, verification table, FreeCAD render and downloads](docs/images/design_studio.png)
-*The Studio (`/`): the model is built in FreeCAD and every part is checked against the spec (volume, position, solid validity).*
+*The Studio (`/app`): the model is built in FreeCAD and every part is checked against the spec (volume, position, solid validity).*
 
 ![Simulators tab: the cement kiln line as the flagship demo next to a water-tank plug-in, with a generic live console showing its tags and commands](docs/images/studio_simulators.png)
 *Simulators tab: the cement kiln line (flagship demo, operator HMI at `/hmi`) beside other plug-ins, each with a live console built from its manifest.*
@@ -77,7 +88,7 @@ temperature-tinted cyclones and calciner, stack plume and live value tags.*
 ```bash
 git clone https://github.com/Arifuzzamanjoy/cemsim-ots && cd cemsim-ots
 uv sync                                   # or: pip install -e .
-uv run cemsim --port 8000                 # http://localhost:8000 = Studio; operator HMI at /hmi (press "start")
+uv run duosim --port 8000                 # http://localhost:8000 = landing page; Studio at /app, operator HMI at /hmi
 ```
 
 Open http://localhost:8000/hmi for the operator HMI, then the **3D plant ↗** button (or /3d).
@@ -107,33 +118,33 @@ is a three.js scene of the whole kiln line, driven by the same live data stream 
 - **Operator tools:** value tags, camera presets, and click-on-equipment live data.
 
 The geometry was designed in FreeCAD (`tools/freecad/build_plant3d.py`, 149 parts, zero clashes
-by an automatic clash check) and exported to `cemsim/web/assets/plant3d.json` (~200 kB gzip).
-three.js is bundled under `cemsim/web/vendor` (MIT), so there is no CDN and no FreeCAD at
+by an automatic clash check) and exported to `duosim/web/assets/plant3d.json` (~200 kB gzip).
+three.js is bundled under `duosim/web/vendor` (MIT), so there is no CDN and no FreeCAD at
 runtime. To change the design, re-run the script inside FreeCAD (e.g. via the FreeCAD MCP):
 
 ```python
-exec(open(r"C:\Users\Public\cemsim\build_plant3d.py").read())
+exec(open(r"C:\Users\Public\duosim\build_plant3d.py").read())
 build()
 print(clashes())
-export_json(r"C:\Users\Public\cemsim\plant3d.json")  # then copy to cemsim/web/assets/
+export_json(r"C:\Users\Public\duosim\plant3d.json")  # then copy to duosim/web/assets/
 ```
 
 ### FreeCAD link, Design Studio and platform
 
 ```bash
-python -m cemsim.freecad_worker start --port 9875            # real FreeCAD on a virtual display + the addon
-export FREECAD_MCP_TOKEN=$(cat .cemsim/freecad-worker/9875/rpc_token)
+python -m duosim.freecad_worker start --port 9875            # real FreeCAD on a virtual display + the addon
+export FREECAD_MCP_TOKEN=$(cat .duosim/freecad-worker/9875/rpc_token)
 echo "GEMINI_API_KEY=..." > .env                             # git-ignored; or ANTHROPIC_API_KEY (uv sync --extra ai)
-uv run cemsim --freecad 127.0.0.1:9875                       # HMI "FreeCAD 3D" buttons now drive that worker
-CEMSIM_PUBLIC_DEMO=1 ...                                      # anonymous visitors, small shared caps (or keys: python -m cemsim.platform keys create --workspace me)
+uv run duosim --freecad 127.0.0.1:9875                       # HMI "FreeCAD 3D" buttons now drive that worker
+DUOSIM_PUBLIC_DEMO=1 ...                                      # anonymous visitors, small shared caps (or keys: python -m duosim.platform keys create --workspace me)
 ```
 
-Then open `/` (the Studio; `/hmi` is the cement operator demo). Health of the link at any time: `GET /api/freecad/health?deep=true`.
-Tests against the real programs: `CEMSIM_FREECAD=/path/to/freecad uv run pytest -m freecad tests/integration`.
+Then open `/app` (the Studio; `/hmi` is the cement operator demo). Health of the link at any time: `GET /api/freecad/health?deep=true`.
+Tests against the real programs: `DUOSIM_FREECAD=/path/to/freecad uv run pytest -m freecad tests/integration`.
 
 ## What is simulated
 
-| Simulex component | CemSim |
+| Simulex component | DuoSim |
 |---|---|
 | Unit models (Simulink: RaM, PrH, CaT, RKi, CC, CeM, CoM) | Python: `units/preheater.py` (PrH + CaT), `units/kiln.py` (RKi), `units/cooler.py` (CC), `units/draught.py`; raw, coal and cement mills not yet |
 | PLC logic: group sequences, interlocks | `control.py` + `sim.py` (drives, groups with permissives/purge, trips) |
@@ -180,22 +191,23 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Layout
 
 ```
-cemsim/thermo.py      species data, absolute enthalpies, melt
-cemsim/chemistry.py   raw mix, kinetics, Bogue
-cemsim/fuels.py       coal definition, combustion
-cemsim/units/         kiln, preheater+calciner, cooler, draught
-cemsim/plant.py       unit coupling, KPIs, heat balance, conservation accounting
-cemsim/control.py     drives, groups, PID, alarms
-cemsim/sim.py         simulator scan, commands, snapshots, trends
-cemsim/trainer.py     disturbances, scoring, event log, lab
-cemsim/server.py      FastAPI + WebSocket
-cemsim/fileset.py     portable JSON filesets (saved states)
-cemsim/web/           HMI (vanilla JS/SVG), 3-D page (three.js, vendored)
-cemsim/freecad_bridge.py  FreeCAD RPC client (auth, handshake, diagnose) + the live kiln model
-cemsim/freecad_worker.py  starts a real FreeCAD (Xvfb) with the addon, token and port
-cemsim/design/        design-by-prompt: spec DSL, LLM providers (Gemini, Claude), FreeCAD builder + verifier
-cemsim/platform/      tenants/API keys, simulator plug-in registry, scaffold, built-in plug-ins
-cemsim/api_design.py, api_platform.py   HTTP APIs of the above
+duosim/thermo.py      species data, absolute enthalpies, melt
+duosim/chemistry.py   raw mix, kinetics, Bogue
+duosim/fuels.py       coal definition, combustion
+duosim/units/         kiln, preheater+calciner, cooler, draught
+duosim/plant.py       unit coupling, KPIs, heat balance, conservation accounting
+duosim/control.py     drives, groups, PID, alarms
+duosim/sim.py         simulator scan, commands, snapshots, trends
+duosim/trainer.py     disturbances, scoring, event log, lab
+duosim/server.py      FastAPI + WebSocket
+duosim/fileset.py     portable JSON filesets (saved states)
+duosim/web/           landing, auth, account, admin, Studio, HMI (vanilla JS/SVG), 3-D page (three.js, vendored)
+duosim/freecad_bridge.py  FreeCAD RPC client (auth, handshake, diagnose) + the live kiln model
+duosim/freecad_worker.py  starts a real FreeCAD (Xvfb) with the addon, token and port
+duosim/design/        spec DSL, LLM providers, design agent, critic, templates, image input, CAD import, FreeCAD builder
+duosim/platform/      tenants/API keys, simulator plug-in registry, scaffold, built-in plug-ins, operator CLI
+duosim/saas/          accounts, sessions, organisations, credits, plans, billing, vault, webhooks, audit
+duosim/api_design.py, api_platform.py, api_saas.py, pages.py   HTTP APIs and pages of the above
 third_party/          vendored freecad-mcp addon (MIT, pinned)
 deploy/, docker-compose.yml   FreeCAD worker + app images
 scripts/              calibration, scenarios, CI end-to-end runner

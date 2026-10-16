@@ -7,7 +7,7 @@ from playwright.async_api import async_playwright
 async def main(url, out, screen, w=1600, h=900):
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        pg = await b.new_page(viewport={"width": w, "height": h})
+        pg = await b.new_page(bypass_csp=True, viewport={"width": w, "height": h})
         msgs = []
         pg.on("console", lambda m: msgs.append(f"{m.type}: {m.text}"))
         pg.on("pageerror", lambda e: msgs.append(f"PAGEERROR: {e}"))

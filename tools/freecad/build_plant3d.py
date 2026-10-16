@@ -1,4 +1,4 @@
-"""FreeCAD design script for the CemSim 3-D plant (run inside FreeCAD 1.x).
+"""FreeCAD design script for the DuoSim 3-D plant (run inside FreeCAD 1.x).
 
 Builds a to-scale 3000 t/d kiln line - preheater tower with steel structure,
 5 cyclones with tangential inlets, calciner with gooseneck, rotary kiln on 3
@@ -15,8 +15,8 @@ KilnSegNN (shell scanner), Kiln*/Tyre*/GirthGear (rotating group), CycS1..5,
 Calciner, *Fan*, CoolFanN, ...
 
 Usage from FreeCAD (or via the FreeCAD MCP execute_code):
-    exec(open(r"C:\\Users\\Public\\cemsim\\build_plant3d.py").read())
-    build(); export_json(r"C:\\Users\\Public\\cemsim\\plant3d.json")
+    exec(open(r"C:\\Users\\Public\\duosim\\build_plant3d.py").read())
+    build(); export_json(r"C:\\Users\\Public\\duosim\\plant3d.json")
 """
 
 import itertools
@@ -27,7 +27,7 @@ import FreeCAD as App
 import Part
 
 V = App.Vector
-DOC = "CemSimPlant3D"
+DOC = "DuoSimPlant3D"
 
 # ---------------------------------------------------------------- design data
 KILN_L, KILN_R, SLOPE = 62000.0, 2200.0, math.atan(0.035)

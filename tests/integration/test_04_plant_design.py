@@ -1,6 +1,6 @@
 """The FreeCAD design script behind the 3-D plant, run in a real FreeCAD.
 
-README claims: 149 parts, zero clashes, exported to cemsim/web/assets/plant3d.json.  These
+README claims: 149 parts, zero clashes, exported to duosim/web/assets/plant3d.json.  These
 tests regenerate the model and check the committed browser asset is what the script produces
 today (so the asset cannot silently drift from the design source).
 """
@@ -16,7 +16,7 @@ pytestmark = pytest.mark.freecad
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "tools/freecad/build_plant3d.py"
-COMMITTED = ROOT / "cemsim/web/assets/plant3d.json"
+COMMITTED = ROOT / "duosim/web/assets/plant3d.json"
 
 
 @pytest.fixture(scope="module")

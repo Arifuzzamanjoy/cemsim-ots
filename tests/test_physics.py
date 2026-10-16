@@ -3,9 +3,9 @@
 import numpy as np
 import pytest
 
-from cemsim import thermo as th
-from cemsim.chemistry import RawMix, T_eq_calcination, bogue, moduli, peq_co2_atm, react
-from cemsim.fuels import Fuel, burn
+from duosim import thermo as th
+from duosim.chemistry import RawMix, T_eq_calcination, bogue, moduli, peq_co2_atm, react
+from duosim.fuels import Fuel, burn
 
 
 def test_gas_cp_matches_nist_shomate():

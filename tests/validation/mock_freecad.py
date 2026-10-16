@@ -1,4 +1,4 @@
-"""Mock of the FreeCAD-MCP addon XML-RPC server, for testing the CemSim bridge
+"""Mock of the FreeCAD-MCP addon XML-RPC server, for testing the DuoSim bridge
 without a live FreeCAD.  Same methods the bridge uses: ping, get_rpc_status,
 execute_code.  Test-control methods: mock_mode(mode), mock_stats().
 
@@ -41,20 +41,20 @@ def execute_code(code):
         }
     time.sleep(0.02)
     with LOCK:
-        if "sys.modules['cemsim_fc'] = m" in code:
+        if "sys.modules['duosim_fc'] = m" in code:
             compile(code, "<mock>", "exec")  # the payload must at least be valid Python
             STATE["installed"] = True
-            return {"success": True, "message": "Python code executed successfully.\nOutput: cemsim_fc installed\n"}
+            return {"success": True, "message": "Python code executed successfully.\nOutput: duosim_fc installed\n"}
         if ".build()" in code:
             if not STATE["installed"]:
-                return {"success": False, "error": "KeyError: 'cemsim_fc'"}
+                return {"success": False, "error": "KeyError: 'duosim_fc'"}
             time.sleep(0.5)
             STATE["built"] = True
             STATE["builds"] += 1
             return {"success": True, "message": "Python code executed successfully.\nOutput: objects 92\n"}
         if "m.update(" in code:
             if not (STATE["installed"] and STATE["built"]):
-                return {"success": False, "error": "RuntimeError: CEMSIM_NEEDS_BUILD"}
+                return {"success": False, "error": "RuntimeError: DUOSIM_NEEDS_BUILD"}
             STATE["updates"] += 1
             return {"success": True, "message": "Python code executed successfully.\n"}
     return {"success": True, "message": "Python code executed successfully.\n"}

@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from cemsim import fileset, server
-from cemsim.sim import DATA, Simulator
+from duosim import fileset, server
+from duosim.sim import DATA, Simulator
 
 
 @pytest.fixture(scope="module")
@@ -21,9 +21,17 @@ def cmd(client, **c):
 
 
 def test_pages_and_static_assets(client):
-    assert "Studio" in client.get("/").text, "the Design Studio is the main page"
+    home = client.get("/")
+    assert "DuoSim" in home.text and "pricing" in home.text, "the product landing page is the main page"
+    assert "DuoSim Studio" in client.get("/app").text, "the Design Studio lives at /app"
     assert "Kiln Line" in client.get("/hmi").text, "the operator HMI lives at /hmi"
-    assert client.get("/design").text == client.get("/").text
+    assert client.get("/design").text == client.get("/app").text, "old /design links still reach the Studio"
+    for page in ("/login", "/signup", "/forgot", "/reset", "/verify", "/account", "/admin", "/terms", "/privacy"):
+        assert client.get(page).status_code == 200, page
+    assert client.get("/healthz").json() == {"ok": True}
+    assert client.get("/readyz").json()["database"] == "ok"
+    h = home.headers
+    assert h["x-content-type-options"] == "nosniff" and "frame-ancestors" in h["content-security-policy"]
     assert "importmap" in client.get("/3d").text
     r = client.get("/static/assets/plant3d.json", headers={"Accept-Encoding": "gzip"})
     assert r.status_code == 200 and r.headers.get("content-encoding") == "gzip"

@@ -7,12 +7,12 @@ import math
 import pytest
 from fastapi.testclient import TestClient
 
-from cemsim import api_design, api_platform, server
-from cemsim.platform import scaffold
-from cemsim.platform.__main__ import main as platform_main
-from cemsim.platform.plugins.water_tank import AREA, H_MAX
-from cemsim.platform.plugins.water_tank import PLUGIN as TANK
-from cemsim.platform.registry import (
+from duosim import api_design, api_platform, server
+from duosim.platform import scaffold
+from duosim.platform.__main__ import main as platform_main
+from duosim.platform.plugins.water_tank import AREA, H_MAX
+from duosim.platform.plugins.water_tank import PLUGIN as TANK
+from duosim.platform.registry import (
     CommandRejected,
     CommandSpec,
     Manifest,
@@ -23,7 +23,7 @@ from cemsim.platform.registry import (
     conformance,
     default_registry,
 )
-from cemsim.platform.store import Store
+from duosim.platform.store import Store
 
 
 # --------------------------------------------------------------------------- contract
@@ -222,7 +222,7 @@ def test_cli_new_check_and_simulators(tmp_path, capsys):
 # --------------------------------------------------------------------------- session API
 @pytest.fixture
 def api(tmp_path, monkeypatch):
-    monkeypatch.delenv("CEMSIM_DEV_OPEN", raising=False)
+    monkeypatch.delenv("DUOSIM_DEV_OPEN", raising=False)
     store = Store(tmp_path / "p.sqlite3")
     monkeypatch.setattr(api_design, "_STORE", store)
     api_platform._reset_for_tests()
@@ -273,7 +273,7 @@ def test_session_api_validates_and_isolates_tenants(api):
 
 def test_session_cap_and_cement_kiln_through_the_generic_api(api, monkeypatch):
     h, a = api["http"], api["a"]
-    monkeypatch.setenv("CEMSIM_MAX_SESSIONS", "2")
+    monkeypatch.setenv("DUOSIM_MAX_SESSIONS", "2")
     h.post("/api/platform/sessions", json={"simulator": "water_tank"}, headers=a)
     r = h.post("/api/platform/sessions", json={"simulator": "cement_kiln"}, headers=a)
     assert r.status_code == 201
@@ -298,8 +298,8 @@ def test_session_cap_and_cement_kiln_through_the_generic_api(api, monkeypatch):
 
 
 def test_public_sessions_are_private_to_a_visitor_and_expire_quickly(api, monkeypatch):
-    monkeypatch.setenv("CEMSIM_PUBLIC_DEMO", "1")
-    monkeypatch.setenv("CEMSIM_TRUST_FORWARDED", "1")
+    monkeypatch.setenv("DUOSIM_PUBLIC_DEMO", "1")
+    monkeypatch.setenv("DUOSIM_TRUST_FORWARDED", "1")
     h = api["http"]
     a, b = {"X-Forwarded-For": "203.0.113.1"}, {"X-Forwarded-For": "203.0.113.2"}
     sid = h.post("/api/platform/sessions", json={"simulator": "water_tank"}, headers=a).json()["id"]
@@ -307,7 +307,7 @@ def test_public_sessions_are_private_to_a_visitor_and_expire_quickly(api, monkey
     assert h.get(f"/api/platform/sessions/{sid}", headers=b).status_code == 404  # another visitor
     assert h.get(f"/api/platform/sessions/{sid}", headers=api["a"]).status_code == 404  # a keyed tenant
     # an abandoned anonymous console is reaped after the short public idle time
-    monkeypatch.setenv("CEMSIM_PUBLIC_SESSION_IDLE_S", "0")
+    monkeypatch.setenv("DUOSIM_PUBLIC_SESSION_IDLE_S", "0")
     import time as _t
 
     _t.sleep(0.05)

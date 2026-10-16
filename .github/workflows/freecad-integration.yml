@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - "cemsim/freecad_*.py"
-      - "cemsim/design/**"
-      - "cemsim/api_design.py"
+      - "duosim/freecad_*.py"
+      - "duosim/design/**"
+      - "duosim/api_design.py"
       - "third_party/**"
       - "tools/freecad/**"
       - "tests/integration/**"
@@ -57,11 +57,11 @@ jobs:
           chmod +x fc.AppImage
           ./fc.AppImage --appimage-extract > /dev/null
           rm fc.AppImage
-          echo "CEMSIM_FREECAD=${PWD}/squashfs-root" >> "${GITHUB_ENV}"
+          echo "DUOSIM_FREECAD=${PWD}/squashfs-root" >> "${GITHUB_ENV}"
       - run: uv sync --group dev --group e2e
       - name: Integration suite (connection, security, MCP server, live model, design pipeline, faults)
         env:
-          CEMSIM_WORKER_LOG_DIR: ${{ github.workspace }}/worker-logs
+          DUOSIM_WORKER_LOG_DIR: ${{ github.workspace }}/worker-logs
         run: uv run --no-sync pytest -m "freecad and not llm" tests/integration -v
       - name: Design Studio in a browser (real worker, headless Chromium, no model credits)
         run: |

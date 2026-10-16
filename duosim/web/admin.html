@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>DuoSim — Admin</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/static/saas.css">
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="shell">
+  <aside class="side">
+    <a href="#stats" data-s="stats">◫ Dashboard</a>
+    <a href="#users" data-s="users">☺ Users</a>
+    <a href="#workspaces" data-s="workspaces">▦ Workspaces</a>
+    <a href="#audit" data-s="audit">☰ Audit log</a>
+  </aside>
+  <main class="main">
+    <div id="denied"></div>
+    <section id="s-stats">
+      <h1>Platform dashboard</h1>
+      <div class="grid g4" id="stats" style="margin-top:18px"></div>
+      <div class="card" style="margin-top:18px"><h3>Workspaces by plan</h3><div id="plans" class="row" style="margin-top:8px"></div></div>
+    </section>
+    <section id="s-users">
+      <h1>Users</h1>
+      <div class="card"><form class="row" id="uq"><input class="grow" id="uq-text" placeholder="search email or name"><button class="btn">Search</button></form>
+        <div class="table-wrap"><table class="t" style="margin-top:12px"><thead><tr><th>User</th><th>Joined</th><th>Last sign-in</th><th>Status</th><th></th></tr></thead><tbody id="users"></tbody></table></div></div>
+    </section>
+    <section id="s-workspaces">
+      <h1>Workspaces</h1>
+      <div class="card"><form class="row" id="wq"><input class="grow" id="wq-text" placeholder="search workspace"><button class="btn">Search</button></form>
+        <div class="table-wrap"><table class="t" style="margin-top:12px"><thead><tr><th>Workspace</th><th>Plan</th><th class="n">Credits</th><th class="n">Members</th><th class="n">Designs</th><th>Status</th><th></th></tr></thead><tbody id="workspaces"></tbody></table></div></div>
+    </section>
+    <section id="s-audit">
+      <h1>Audit log</h1>
+      <div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>When</th><th>Who</th><th>Workspace</th><th>Action</th><th>Details</th><th>IP</th></tr></thead><tbody id="audit"></tbody></table></div></div>
+    </section>
+  </main>
+</div>
+<script type="module" src="/static/admin.js"></script>
+</body>
+</html>

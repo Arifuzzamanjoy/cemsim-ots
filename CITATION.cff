@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use CemSim in teaching or research, please cite it."
-title: "CemSim: open-source cement kiln-line operator training simulator"
+message: "If you use DuoSim in teaching or research, please cite it."
+title: "DuoSim: open-source cement kiln-line operator training simulator"
 authors:
   - name: "Arifuzzaman Joy"
 repository-code: "https://github.com/Arifuzzamanjoy/cemsim-ots"

@@ -1,9 +1,9 @@
-# CemSim process model — equations and assumptions
+# DuoSim process model — equations and assumptions
 
 This document is the reference for every equation in the simulator. Code references are
 `module:function`. Units throughout: kmol, kmol/s, kJ, kW, K, Pa (gauge).
 
-## 1. Thermodynamics (`cemsim/thermo.py`)
+## 1. Thermodynamics (`duosim/thermo.py`)
 
 Every species carries its **absolute enthalpy**
 
@@ -36,7 +36,7 @@ Checks (`tests/test_physics.py`):
 | Theoretical heat of clinker formation | 1700 kJ/kg | 1650–1800 kJ/kg |
 | Coal adiabatic flame temperature (λ = 1.1, 25 °C air) | ≈ 2000 °C | ≈ 2000 °C |
 
-## 2. Chemistry (`cemsim/chemistry.py`)
+## 2. Chemistry (`duosim/chemistry.py`)
 
 | | Reaction | ΔH298 (kJ/mol) | Rate law |
 |---|---|---|---|
@@ -65,7 +65,7 @@ Checks (`tests/test_physics.py`):
   (CaO as CaCO3, plus free moisture). The kiln feed LSF is 1.00, because coal ash absorbed
   in the burning zone lowers the clinker LSF to about 0.95.
 
-## 3. Fuel and combustion (`cemsim/fuels.py`)
+## 3. Fuel and combustion (`duosim/fuels.py`)
 
 The coal is defined by its as-fired ultimate analysis (C, H, O, N, moisture, ash) and its
 LHV. Its pseudo-species formation enthalpy is
@@ -81,7 +81,7 @@ automatically releases 283 kJ/mol less.
 - **Ash:** the ash oxides of burnt coal join the solids where the coal burns (kiln bed or
   calciner meal), which lowers clinker LSF.
 
-## 4. Rotary kiln (`cemsim/units/kiln.py`)
+## 4. Rotary kiln (`duosim/units/kiln.py`)
 
 The kiln is split into 30 axial cells (62 m × 4.0 m inside brick). The bed and wall are
 dynamic; the gas is quasi-steady (gas residence is about 1 s, versus minutes to hours for
@@ -121,7 +121,7 @@ bed and wall).
   with melt content (sticky clinker). Power = τ ω / η + no-load power. This is why operators
   read kiln amps as a burning-zone indicator.
 
-## 5. Preheater and calciner (`cemsim/units/preheater.py`)
+## 5. Preheater and calciner (`duosim/units/preheater.py`)
 
 There are 5 nodes: S1..S4 and CAL (calciner + stage-5 cyclone). Each node is a riser plus
 cyclone, where gas from below meets meal from the cyclone above. Gas and meal leave at a
@@ -139,7 +139,7 @@ common T_i: riser exchange reaches equilibrium in about 0.1 s.
 - **Blockage.** A blocked cyclone holds its separated meal in the cone. On release the cone
   empties in about 20 s, a flush of cold meal into the kiln.
 
-## 6. Grate cooler (`cemsim/units/cooler.py`)
+## 6. Grate cooler (`duosim/units/cooler.py`)
 
 The 18 m grate is split into 1 m plug-flow cells, with 6 fan compartments mapped onto them.
 
@@ -151,7 +151,7 @@ The 18 m grate is split into 1 m plug-flow cells, with 6 fan compartments mapped
   vent takes the rest. Hood in-leak (negative hood pressure) dilutes the secondary air;
   positive hood pressure puffs recuperation air out.
 
-## 7. Draught (`cemsim/units/draught.py`)
+## 7. Draught (`duosim/units/draught.py`)
 
 Branch resistances follow Δp = R m² T/1000 (ρ ∝ 1/T). The tertiary air damper characteristic
 is φ = (pos/100)^1.5 + 0.02. The ID fan follows the fan laws, −p_x = (ρ/ρ_d)(a n² − b Q²).
@@ -165,7 +165,7 @@ back-calculated from the design point in `params.py` (tested).
 Coupling: gas generated inside the line (CO2 + H2O + combustion products) is fed back with a
 10 s first-order lag. This breaks the algebraic loop and represents the duct volumes.
 
-## 8. Control layer (`cemsim/control.py`, `cemsim/sim.py`)
+## 8. Control layer (`duosim/control.py`, `duosim/sim.py`)
 
 - **Drives:** STOPPED → STARTING → RUNNING → STOPPING state machine, FAULT on trip (reset
   needed), with rate-limited speed/position.
@@ -187,7 +187,7 @@ Coupling: gas generated inside the line (CO2 + H2O + combustion products) is fed
 
 - **Alarms:** HH/H/L/LL limits with deadband and delay, following ISA-18.2 states.
 
-## 9. Trainer (`cemsim/trainer.py`)
+## 9. Trainer (`duosim/trainer.py`)
 
 - **Disturbances:**
   - coal LHV, ash content and dosing fluctuation

@@ -6,7 +6,7 @@ FreeCAD-MCP addon and talk to it over the real RPC protocol - and through the re
 
 They are opt-in because they need ~3 GB of FreeCAD and take a couple of minutes:
 
-    CEMSIM_FREECAD=/opt/freecad-1.1.4 uv run pytest -m freecad tests/integration -v
+    DUOSIM_FREECAD=/opt/freecad-1.1.4 uv run pytest -m freecad tests/integration -v
 
 See docs/FREECAD_INTEGRATION.md.
 """
@@ -20,8 +20,8 @@ import uuid
 
 import pytest
 
-from cemsim.freecad_bridge import FreeCADClient
-from cemsim.freecad_worker import FreeCADWorker, find_freecad
+from duosim.freecad_bridge import FreeCADClient
+from duosim.freecad_worker import FreeCADWorker, find_freecad
 
 from .mcp_stdio import MCPStdioClient
 
@@ -52,7 +52,7 @@ def _port_free(port: int) -> bool:
 @pytest.fixture(scope="session")
 def worker(tmp_path_factory):
     if find_freecad() is None:
-        pytest.skip("FreeCAD not found (set CEMSIM_FREECAD to an extracted AppImage dir)")
+        pytest.skip("FreeCAD not found (set DUOSIM_FREECAD to an extracted AppImage dir)")
     if shutil.which("Xvfb") is None:
         pytest.skip("Xvfb not installed (apt install xvfb)")
     if not _port_free(MCP_RPC_PORT):
@@ -60,7 +60,7 @@ def worker(tmp_path_factory):
     w = FreeCADWorker(port=MCP_RPC_PORT, home=tmp_path_factory.mktemp("fcworker"))
     w.start()
     yield w
-    keep = os.environ.get("CEMSIM_WORKER_LOG_DIR")
+    keep = os.environ.get("DUOSIM_WORKER_LOG_DIR")
     if keep and w.log_path.exists():  # CI uploads this as an artifact
         os.makedirs(keep, exist_ok=True)
         shutil.copy(w.log_path, os.path.join(keep, "freecad.log"))

@@ -5,11 +5,11 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from cemsim import api_design, server
-from cemsim.design.builder import BuildResult, PartCheck
-from cemsim.design.llm import LLMError, LLMResult
-from cemsim.design.service import DesignService
-from cemsim.platform.store import Store
+from duosim import api_design, server
+from duosim.design.builder import BuildResult, PartCheck
+from duosim.design.llm import LLMError, LLMResult
+from duosim.design.service import DesignService
+from duosim.platform.store import Store
 
 SPEC = {
     "name": "Ball",
@@ -55,7 +55,7 @@ class FakeBuilder:
 
 @pytest.fixture
 def env(tmp_path, monkeypatch):
-    monkeypatch.delenv("CEMSIM_DEV_OPEN", raising=False)
+    monkeypatch.delenv("DUOSIM_DEV_OPEN", raising=False)
     prov, builder = FakeProvider(), FakeBuilder()
     store = Store(tmp_path / "p.sqlite3")
     monkeypatch.setattr(api_design, "_STORE", store)
@@ -91,6 +91,7 @@ def test_every_design_route_requires_an_api_key(env):
     ]:
         r = getattr(h, method)(path, **({"json": {}} if method == "post" else {}))
         assert r.status_code == 401, (method, path, r.status_code)
+    assert h.get("/api/design/status", headers=H("ds_wrong")).status_code == 401
     assert h.get("/api/design/status", headers=H("cs_wrong")).status_code == 401
     assert h.get("/api/design/status", headers=H("not-even-prefixed")).status_code == 401
 
@@ -107,7 +108,7 @@ def test_bearer_token_is_accepted_and_revocation_works(env):
 
 def test_dev_open_mode_is_explicit_opt_in(env, monkeypatch):
     assert env["http"].get("/api/design/status").status_code == 401
-    monkeypatch.setenv("CEMSIM_DEV_OPEN", "1")
+    monkeypatch.setenv("DUOSIM_DEV_OPEN", "1")
     r = env["http"].get("/api/design/status")
     assert r.status_code == 200 and r.json()["workspace"] == "dev"
 
@@ -147,7 +148,7 @@ def test_tenants_cannot_see_each_others_designs_or_files(env):
 
 
 def test_daily_quota_returns_429(env, monkeypatch):
-    monkeypatch.setenv("CEMSIM_DAILY_GENERATIONS", "2")
+    monkeypatch.setenv("DUOSIM_DAILY_GENERATIONS", "2")
     for _ in range(2):
         assert (
             env["http"].post("/api/design/generate", json={"prompt": "x"}, headers=H(env["k_acme"])).status_code == 200
@@ -180,8 +181,12 @@ def test_build_endpoint_builds_an_edited_spec(env):
 
 
 def test_oversized_bodies_are_refused_before_any_work(env):
-    big = {"prompt": "x", "pad": "y" * 1_100_000}
-    r = env["http"].post("/api/design/generate", json=big, headers=H(env["k_acme"]))
+    big = {"spec": SPEC, "pad": "y" * 1_100_000}  # JSON routes: 1 MB
+    r = env["http"].post("/api/design/build", json=big, headers=H(env["k_acme"]))
+    assert r.status_code == 413 and env["builder"].built == []
+    # generation carries reference images (4 x 6 MB, base64): its own, larger, still bounded limit
+    huge = {"prompt": "x", "pad": "y" * (api_design.MAX_GENERATE_BODY + 1)}
+    r = env["http"].post("/api/design/generate", json=huge, headers=H(env["k_acme"]))
     assert r.status_code == 413
     assert env["prov"].prompts == []
 
@@ -205,8 +210,8 @@ def test_chunked_uploads_cannot_bypass_the_size_limit(env):
 
     def body():
         yield b'{"prompt": "x", "pad": "'
-        for _ in range(40):
-            yield b"y" * 50_000
+        for _ in range(api_design.MAX_GENERATE_BODY // 1_000_000 + 2):
+            yield b"y" * 1_000_000
         yield b'"}'
 
     r = env["http"].post(
@@ -226,7 +231,7 @@ def test_design_ids_must_be_server_generated_hex(env):
 # ---------------------------------------------------------------- public demo (no key needed, bounded)
 @pytest.fixture
 def public(env, monkeypatch):
-    monkeypatch.setenv("CEMSIM_PUBLIC_DEMO", "1")
+    monkeypatch.setenv("DUOSIM_PUBLIC_DEMO", "1")
     return env
 
 
@@ -240,7 +245,7 @@ def test_public_demo_works_without_a_key_and_says_so(public):
 
 def test_public_demo_off_by_default_and_a_presented_key_must_still_be_valid(env, monkeypatch):
     assert env["http"].get("/api/design/status").status_code == 401  # not enabled
-    monkeypatch.setenv("CEMSIM_PUBLIC_DEMO", "1")
+    monkeypatch.setenv("DUOSIM_PUBLIC_DEMO", "1")
     h = env["http"]
     assert h.get("/api/design/status", headers=H("cs_not_a_real_key_0000000000000")).status_code == 401, (
         "a wrong key must not silently fall back to the anonymous workspace"
@@ -251,15 +256,15 @@ def test_public_demo_off_by_default_and_a_presented_key_must_still_be_valid(env,
 
 
 def test_public_demo_generates_but_is_capped_per_visitor_and_per_day(public, monkeypatch):
-    monkeypatch.setenv("CEMSIM_PUBLIC_HOURLY_GENERATIONS", "2")
-    monkeypatch.setenv("CEMSIM_PUBLIC_DAILY_GENERATIONS", "3")
+    monkeypatch.setenv("DUOSIM_PUBLIC_HOURLY_GENERATIONS", "2")
+    monkeypatch.setenv("DUOSIM_PUBLIC_DAILY_GENERATIONS", "3")
     h = public["http"]
     for _ in range(2):
         assert h.post("/api/design/generate", json={"prompt": "x"}).status_code == 200
     r = h.post("/api/design/generate", json={"prompt": "x"})
     assert r.status_code == 429 and "hourly" in r.json()["detail"] and "own API key" in r.json()["detail"]
     # a different visitor (IP) still has an hourly allowance, until the shared daily budget is gone
-    monkeypatch.setenv("CEMSIM_TRUST_FORWARDED", "1")
+    monkeypatch.setenv("DUOSIM_TRUST_FORWARDED", "1")
     other = {"X-Forwarded-For": "203.0.113.9"}
     assert h.post("/api/design/generate", json={"prompt": "x"}, headers=other).status_code == 200
     r = h.post("/api/design/generate", json={"prompt": "x"}, headers={"X-Forwarded-For": "203.0.113.10"})
@@ -269,7 +274,7 @@ def test_public_demo_generates_but_is_capped_per_visitor_and_per_day(public, mon
 
 
 def test_forwarded_ip_is_ignored_unless_the_operator_trusts_the_proxy(public, monkeypatch):
-    monkeypatch.setenv("CEMSIM_PUBLIC_HOURLY_GENERATIONS", "1")
+    monkeypatch.setenv("DUOSIM_PUBLIC_HOURLY_GENERATIONS", "1")
     h = public["http"]
     assert (
         h.post("/api/design/generate", json={"prompt": "x"}, headers={"X-Forwarded-For": "198.51.100.1"}).status_code

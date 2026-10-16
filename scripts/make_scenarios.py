@@ -3,7 +3,7 @@
 import sys
 
 sys.path.insert(0, ".")
-from cemsim.sim import Simulator
+from duosim.sim import Simulator
 
 sim = Simulator()
 sim.load_file("nominal")

@@ -5,8 +5,8 @@ import math
 import numpy as np
 import pytest
 
-from cemsim import thermo as th
-from cemsim.sim import CommandError, Simulator
+from duosim import thermo as th
+from duosim.sim import CommandError, Simulator
 
 
 @pytest.fixture(scope="module")
@@ -127,7 +127,7 @@ def test_calciner_burner_permissive(nominal_snap):
 
 def test_calciner_coal_ignites_easier_in_air():
     """Char burnout ~ sqrt(O2): at 18 % O2 a cold calciner burns more coal than at 2 %."""
-    from cemsim.params import PreheaterParams
+    from duosim.params import PreheaterParams
 
     p = PreheaterParams()
     T = 950.0

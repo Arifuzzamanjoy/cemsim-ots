@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # A FreeCAD worker: real FreeCAD GUI on a virtual display + the FreeCAD-MCP addon RPC server.
-# Build:  docker build -f deploy/freecad-worker.Dockerfile -t cemsim-freecad .
+# Build:  docker build -f deploy/freecad-worker.Dockerfile -t duosim-freecad .
 # One container = one FreeCAD session (the addon serialises work on FreeCAD's GUI thread);
 # scale by running more containers behind the app's worker setting.
 
@@ -27,15 +27,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=fetch /dl/squashfs-root /opt/freecad
 WORKDIR /app
 # only what the worker needs: the launcher, the RPC client it imports, and the vendored addon
-COPY cemsim/__init__.py cemsim/freecad_bridge.py cemsim/freecad_worker.py cemsim/
+COPY duosim/__init__.py duosim/freecad_bridge.py duosim/freecad_worker.py duosim/
 COPY third_party/freecad-mcp third_party/freecad-mcp
 # the healthcheck reads the token copy the entrypoint makes (the RPC refuses unauthenticated calls)
-ENV CEMSIM_FREECAD=/opt/freecad PYTHONUNBUFFERED=1 FREECAD_MCP_TOKEN_FILE=/run/freecad/token
+ENV DUOSIM_FREECAD=/opt/freecad PYTHONUNBUFFERED=1 FREECAD_MCP_TOKEN_FILE=/run/freecad/token
 COPY deploy/entrypoint-freecad.sh /app/entrypoint.sh
 EXPOSE 9875
 # private ranges by default (loopback is always added for the healthcheck); narrow to your app network in production
 ENV ALLOWED_IPS="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
 HEALTHCHECK --interval=15s --timeout=8s --start-period=60s --retries=4 \
-  CMD python3 -c "import sys; from cemsim.freecad_bridge import FreeCADClient; d = FreeCADClient('127.0.0.1', 9875).diagnose(); sys.exit(0 if d['ok'] else 1)"
+  CMD python3 -c "import sys; from duosim.freecad_bridge import FreeCADClient; d = FreeCADClient('127.0.0.1', 9875).diagnose(); sys.exit(0 if d['ok'] else 1)"
 # starts as root only to read the secret, then drops to uid 10001 (see entrypoint-freecad.sh)
 ENTRYPOINT ["/app/entrypoint.sh"]
