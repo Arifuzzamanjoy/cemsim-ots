@@ -13,7 +13,9 @@ deployment — not a finished product. What exists, what does not:
 | Workspaces, hashed API keys, daily quotas, design history | built, tested | `duosim/platform/store.py` |
 | Design-by-prompt (Gemini / Claude → verified FreeCAD model) | built, tested live (Gemini) | `duosim/design/`, `/design` |
 | FreeCAD worker container, app container, compose file | built and run end to end (see *Deployment*) | `deploy/`, `docker-compose.yml` |
-| Billing, sign-up/SSO, admin UI | **not built** | — |
+| Accounts, organisations, credits, billing (Stripe), admin UI | built, tested (see [SAAS.md](SAAS.md)) | `duosim/saas/`, `duosim/api_saas.py` |
+| Image and CAD input, design agent | built, tested (see [AGENT.md](AGENT.md)) | `duosim/design/` |
+| SSO / SAML | **not built** (sales-led, Enterprise) | — |
 | Worker pool / autoscaling, job queue | **not built** (one worker per `DUOSIM_FREECAD_URL`) | — |
 | Sandboxing of tenant-written simulators | **not built** — plug-ins are operator-trusted code | — |
 | Live 3-D binding for *arbitrary* simulators | **not built** (the cement view binds by part name) | — |
@@ -43,7 +45,7 @@ cumulative flows booked on the same weights, so its mass balance closes to round
 
 ## The main page and the public demo
 
-`/` is the **Studio**: a *Design* tab (prompt → verified FreeCAD model) and a *Simulators* tab (gallery of
+`/app` is the **Studio** (`/` is the product landing page): a *Design* tab (prompt → verified FreeCAD model) and a *Simulators* tab (gallery of
 plug-ins with a generic live console). The cement kiln line is the flagship demo: its dedicated operator HMI is at
 `/hmi` (with a "← Studio" button back), its 3-D plant at `/3d`. Any other plug-in appears in the gallery
 automatically and gets the generic console, which is built from its manifest (tags, units, commands).
@@ -106,7 +108,7 @@ execution. So:
 Outputs per design: STEP, FreeCAD `.FCStd`, a three.js mesh (shown in the Studio), a FreeCAD render, the spec.
 
 Limits that protect the shared worker (a started FreeCAD GUI task cannot be cancelled): 300 parts, 24 points per
-pipe, 120 pipe points in total, 2000-character prompts, 1 MB request bodies (also enforced for chunked uploads),
+pipe, 120 pipe points in total, 2000-character prompts, 1 MB JSON bodies (generation with images: ~33 MB; CAD uploads: `DUOSIM_MAX_IMPORT_MB`) (also enforced for chunked uploads),
 daily quotas per workspace. The largest valid design builds in ~30 s on the reference machine.
 
 ## Deployment

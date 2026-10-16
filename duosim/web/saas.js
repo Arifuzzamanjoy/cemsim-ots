@@ -84,7 +84,7 @@ export function appNav(m, active = "") {
     right.append(el("a", { class: "btn sm ghost", href: "/login" }, "Sign in"), el("a", { class: "btn sm primary", href: "/signup" }, "Start free"));
   }
   const menu = el("button", { class: "btn sm ghost menu-btn", "aria-label": "menu", onclick: () => links.classList.toggle("open") }, "☰");
-  nav.replaceChildren(el("div", { class: "wrap" }, el("a", { class: "brand", href: "/" }, el("span", { class: "logo" }), "Duo", el("b", {}, "Sim")), links, right, menu));
+  nav.replaceChildren(el("div", { class: "wrap" }, el("a", { class: "brand", href: "/" }, el("span", { class: "logo" }), el("span", {}, "Duo", el("b", {}, "Sim"))), links, right, menu));
 }
 
 export function confirmText(question) { return window.confirm(question); }

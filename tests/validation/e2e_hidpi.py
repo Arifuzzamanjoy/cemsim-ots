@@ -22,7 +22,7 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
         for dpr in (1.0, 1.25, 1.5, 2.0):
-            pg = await b.new_page(viewport={"width": 1280, "height": 600}, device_scale_factor=dpr)
+            pg = await b.new_page(bypass_csp=True, viewport={"width": 1280, "height": 600}, device_scale_factor=dpr)
             await pg.goto(f"http://{BASE}/hmi")
             await pg.wait_for_timeout(1500)
             for scr in ("profiles", "trends"):

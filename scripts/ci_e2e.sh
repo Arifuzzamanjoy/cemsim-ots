@@ -14,7 +14,7 @@ mkdir -p "$OUT/shots"
 
 # Never test a server we did not start: these suites click buttons, load filesets and inject
 # disturbances, which would hit whatever already answers on the port.
-for p in "$P_APP" "$P_FC" "$P_DEAD" "$P_MOCK"; do
+for p in "$P_APP" "$P_FC" "$P_DEAD" "$P_MOCK" "${E2E_PORT_SAAS:-8020}"; do
   if $PY - "$p" <<'PYEOF'
 import socket, sys
 s = socket.socket(); s.settimeout(0.5)
@@ -78,6 +78,7 @@ step run "HMI click-through"    $PY tests/validation/e2e_browser.py localhost:$P
 step run "Mimic layout"         $PY tests/validation/e2e_layout.py localhost:$P_APP "$OUT/shots/mimic.png"
 step run "HiDPI charts"         $PY tests/validation/e2e_hidpi.py localhost:$P_APP
 step run_once_retry "Live 3-D plant" $PY tests/validation/e2e_3d.py localhost:$P_APP "$OUT/shots"
+step run "SaaS product (sign-up, Studio, billing, admin)" $PY tests/validation/e2e_saas.py "${E2E_PORT_SAAS:-8020}" "$OUT/shots"
 step run_once_retry "FreeCAD bridge (mock)" $PY tests/validation/e2e_freecad.py localhost:$P_FC $P_MOCK localhost:$P_DEAD
 
 # the API probe must also have left the simulator alive and the HMI must not crash the server

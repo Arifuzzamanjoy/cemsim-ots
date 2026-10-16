@@ -116,7 +116,7 @@ def start_server(port, fc_port, token, data_dir, dev_open, public=False):
 async def drive(base, key=None, expect_key_prompt=False):
     async with async_playwright() as p:
         b = await p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        ctx = await b.new_context(viewport={"width": 1500, "height": 850}, accept_downloads=True)
+        ctx = await b.new_context(bypass_csp=True, viewport={"width": 1500, "height": 850}, accept_downloads=True)
         pg = await ctx.new_page()
         errors, dialogs = [], []
         pg.on("pageerror", lambda e: errors.append(str(e)))
@@ -199,7 +199,7 @@ async def drive_studio(base, shot_dir=None):
     """Public-demo instance: no key needed; key hygiene; simulator gallery + live console; HMI round trip."""
     async with async_playwright() as p:
         b = await p.chromium.launch(args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
-        pg = await (await b.new_context(viewport={"width": 1500, "height": 850})).new_page()
+        pg = await (await b.new_context(bypass_csp=True, viewport={"width": 1500, "height": 850})).new_page()
         sent_keys, errors = [], []
         pg.on("request", lambda r: sent_keys.append(r.headers.get("x-api-key")) if r.headers.get("x-api-key") else None)
         pg.on("pageerror", lambda e: errors.append(str(e)))

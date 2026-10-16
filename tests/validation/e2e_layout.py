@@ -72,7 +72,7 @@ def samples(pts, skip_ends=4.0, step=1.0):
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        pg = await b.new_page(viewport={"width": 1600, "height": 900})
+        pg = await b.new_page(bypass_csp=True, viewport={"width": 1600, "height": 900})
         errs = []
         pg.on("console", lambda m: errs.append(m.text) if m.type == "error" else None)
         await pg.goto(f"http://{BASE}/hmi")

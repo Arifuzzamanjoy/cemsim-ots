@@ -94,9 +94,7 @@ resize();
 (function loop() { controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); })();
 
 function showMesh(data) {
-  scene.remove(model);
-  model.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); });
-  model = new THREE.Group();
+  const meshes = [];
   const S = 0.001; // mm -> m
   for (const o of data.objects) {
     if (!o.i.length) continue;
@@ -112,8 +110,16 @@ function showMesh(data) {
     });
     const mesh = new THREE.Mesh(g, m);
     mesh.name = o.name;
-    model.add(mesh);
+    meshes.push(mesh);
   }
+  setModel(meshes);
+}
+
+function setModel(meshes) {
+  scene.remove(model);
+  model.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); });
+  model = new THREE.Group();
+  for (const m of meshes) model.add(m);
   scene.add(model);
   STATE.meshObjects = model.children.length;
   const box = new THREE.Box3().setFromObject(model);
@@ -127,6 +133,55 @@ function showMesh(data) {
     grid.scale.setScalar(Math.max(1, r / 50));
   }
   $("#empty").style.display = "none";
+}
+
+// Preview of a spec drawn directly from its primitives (no FreeCAD): spec metres, Z up -> three.js Y up.
+function previewSpec(spec) {
+  const T = (v) => new THREE.Vector3(v[0], v[2], -v[1]);
+  const meshes = [];
+  for (const p of spec.parts) {
+    const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(p.color || "#9aa3ad"), transparent: (p.opacity ?? 1) < 1,
+      opacity: p.opacity ?? 1, roughness: 0.65, metalness: 0.1, side: THREE.DoubleSide });
+    const yaw = THREE.MathUtils.degToRad(p.yaw_deg || 0);
+    const at = p.at ? T(p.at) : null;
+    const place = (geo, centreLocal, dir) => { // centreLocal: offset from `at` in spec coords before yaw
+      const m = new THREE.Mesh(geo, mat);
+      if (dir) m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), T(dir).normalize());
+      const off = T(centreLocal).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+      m.position.copy(at).add(off);
+      m.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw));
+      m.name = p.id; meshes.push(m);
+    };
+    const AX = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1], "-x": [-1, 0, 0], "-y": [0, -1, 0], "-z": [0, 0, -1] };
+    const d = AX[p.axis || "z"];
+    if (p.kind === "box") {
+      const [sx, sy, sz] = p.size;
+      place(new THREE.BoxGeometry(sx, sz, sy), [sx / 2, sy / 2, sz / 2], null);
+    } else if (p.kind === "sphere") {
+      place(new THREE.SphereGeometry(p.radius, 32, 16), [0, 0, 0], null);
+    } else if (p.kind === "cylinder" || p.kind === "cone") {
+      const r2 = p.kind === "cone" ? (p.radius2 || 0) : p.radius;
+      place(new THREE.CylinderGeometry(r2, p.radius, p.height, 40), d.map((c) => c * p.height / 2), d);
+    } else if (p.kind === "tube") {
+      const sh = new THREE.Shape().absarc(0, 0, p.radius, 0, Math.PI * 2);
+      sh.holes.push(new THREE.Path().absarc(0, 0, p.inner_radius, 0, Math.PI * 2, true));
+      const g = new THREE.ExtrudeGeometry(sh, { depth: p.height, bevelEnabled: false, curveSegments: 40 });
+      g.rotateX(-Math.PI / 2); // extrusion along +Y
+      place(g, [0, 0, 0], d);
+    } else if (p.kind === "pipe") {
+      for (let i = 0; i < p.path.length; i++) {
+        const a = T(p.path[i]);
+        const s = new THREE.Mesh(new THREE.SphereGeometry(p.radius, 16, 8), mat); s.position.copy(a); s.name = p.id; meshes.push(s);
+        if (i + 1 < p.path.length) {
+          const b = T(p.path[i + 1]), len = a.distanceTo(b);
+          const c = new THREE.Mesh(new THREE.CylinderGeometry(p.radius, p.radius, len, 20), mat);
+          c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+          c.position.copy(a).add(b).multiplyScalar(0.5); c.name = p.id; meshes.push(c);
+        }
+      }
+    }
+  }
+  setModel(meshes);
 }
 
 // ------------------------------------------------------------------ small helpers
@@ -276,10 +331,12 @@ async function show(r) {
   tbody.replaceChildren();
   const verdict = $("#verdict");
   if (!b.built) {
-    verdict.textContent = "not built: " + (b.reason || "unknown");
-    verdict.className = "chip bad";
+    const notAsked = b.reason === "build not requested";
+    verdict.textContent = notAsked ? "spec only (FreeCAD build not requested)" : "not built: " + (b.reason || "unknown");
+    verdict.className = "chip " + (notAsked ? "" : "bad");
     $("#shot").style.display = "none";
     $("#downloads").replaceChildren(dlButton(r.id, "spec", "spec JSON"));
+    try { previewSpec(r.spec); verdict.textContent += " · preview drawn from the spec"; } catch (err) { console.warn("preview failed", err); }
     fillList($("#warns"), warns);
     return;
   }
@@ -411,6 +468,7 @@ async function refreshStatus() {
     if (!s.modes.includes($("#mode").value)) $("#mode").value = s.modes[s.modes.length - 1];
     $("#cad-formats").textContent = s.import_formats.map((f) => f.slice(1).toUpperCase()).join(" · ") + ` · up to ${s.max_import_mb} MB`;
     $("#cad-file").accept = s.import_formats.join(",");
+    if (!s.providers.length) sel.replaceChildren(el("option", { value: "", textContent: "no model configured" }));
     STATE.noProvider = !s.providers.length;
     updateGo();
     if (STATE.noProvider) say("No LLM provider configured: set GEMINI_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY on the server (CAD import still works).", "err");

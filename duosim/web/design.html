@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>DuoSim Studio</title>
 <meta name="robots" content="noindex">
 <style>
   :root { --bg: #0b0f17; --panel: #141b29; --panel2: #18212f; --line: #253043; --line2: #31405a; --ink: #e9eef6; --muted: #98a6ba;
     --accent: #4f8cff; --accent2: #22c3a6; --ok: #2fbf71; --bad: #f05252; --warn: #f0a92e; color-scheme: dark; }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
     font: 13px/1.45 Inter, "Segoe UI", system-ui, Tahoma, Arial, sans-serif; }
   a { color: var(--accent); }
@@ -41,6 +43,8 @@
   button.primary { background: linear-gradient(135deg, var(--accent), #3a73e0); border-color: transparent; color: #fff; }
   .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; align-items: center; }
   .row > * { flex: 0 0 auto; } .row > select { width: auto; } .row > input { flex: 1 1 140px; } .row > .grow { flex: 1 1 auto; }
+  .row > input[type=checkbox], label.row > input[type=checkbox] { flex: 0 0 auto; margin: 0 4px 0 0; }
+  label.row { flex-wrap: nowrap; white-space: nowrap; }
   .ex { font-size: 12px; padding: 3px 9px; font-weight: 500; }
   #status { min-height: 18px; color: var(--muted); margin-top: 6px; } #status.err { color: var(--bad); } #status.ok { color: var(--ok); }
   #stage { position: relative; padding: 0; overflow: hidden; }
@@ -54,6 +58,7 @@
   td.n { text-align: right; font-family: ui-monospace, Consolas, monospace; } th.n { text-align: right; }
   input[type=checkbox] { width: auto; accent-color: var(--accent); }
   .pass { color: var(--ok); } .fail { color: var(--bad); font-weight: 600; }
+  #verdict { white-space: normal; display: inline-block; }
   #shot { width: 100%; border: 1px solid var(--line); border-radius: 6px; margin-top: 6px; display: none; }
   ul.msg { margin: 4px 0; padding-left: 18px; } ul.msg li { margin: 2px 0; }
   .tabs { display: flex; gap: 4px; }
@@ -95,7 +100,7 @@
 <body>
 <div id="app">
   <header>
-    <a class="brand" href="/" title="DuoSim home"><span class="logo"></span>Duo<b>Sim</b><small>Studio</small></a>
+    <a class="brand" href="/" title="DuoSim home"><span class="logo"></span><span>Duo<b>Sim</b></span><small>Studio</small></a>
     <nav class="tabs">
       <button class="tab on" data-view="design">Design</button>
       <button class="tab" data-view="history">My designs</button>
@@ -108,7 +113,7 @@
     <span id="account"></span>
     <span id="keybox">
       <label for="key" class="chip" title="Optional: a platform API key (ds_...). Model keys (Gemini, Claude, OpenAI) are configured on the server or under Account > Model providers, never here.">API key</label>
-      <input id="key" type="password" autocomplete="off" placeholder="ds_...  optional" style="width:200px">
+      <input id="key" type="password" autocomplete="off" placeholder="ds_...  optional" style="width:150px">
     </span>
     <a href="/hmi" class="chip" title="the cement kiln operator HMI, the flagship simulator demo">Kiln HMI</a>
     <a href="/3d" class="chip">3-D plant</a>

@@ -70,6 +70,14 @@ async def privacy():
     return _page("privacy.html")
 
 
+@router.get("/favicon.ico")
+@router.get("/favicon.svg")
+async def favicon():
+    return FileResponse(
+        WEB / "favicon.svg", media_type="image/svg+xml", headers={"Cache-Control": "public, max-age=86400"}
+    )
+
+
 @router.get("/robots.txt")
 async def robots():
     return PlainTextResponse("User-agent: *\nDisallow: /api/\nDisallow: /account\nDisallow: /admin\nDisallow: /app\n")
