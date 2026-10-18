@@ -4,22 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<title>DuoSim — AI plant design and process simulation</title>
-<meta name="description" content="DuoSim turns text, images and CAD files into verified 3-D plant models, and runs first-principles process simulators for design review and operator training.">
-<meta property="og:title" content="DuoSim — AI plant design and process simulation">
-<meta property="og:description" content="Text, image or CAD in. A verified FreeCAD model and a live simulator out.">
+<title>DuoSim — AI design studio for industrial plants</title>
+<meta name="description" content="Describe a plant, upload a sketch or import CAD. DuoSim's design agent builds a verified 3-D model in a real CAD kernel, then you export it, simulate it or call it from your own tools.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DuoSim — AI design studio for industrial plants">
+<meta property="og:description" content="Text, image or CAD in. A verified, editable 3-D model out.">
 <meta name="theme-color" content="#0b0f17">
+<script>document.documentElement.classList.add("js")</script>
 <link rel="stylesheet" href="/static/saas.css">
+<link rel="stylesheet" href="/static/landing.css">
 </head>
-<body>
-<nav class="nav" id="nav">
+<body class="lp">
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<nav class="nav" id="nav" aria-label="Primary">
   <div class="wrap">
     <a class="brand" href="/"><span class="logo"></span><span>Duo<b>Sim</b></span></a>
     <div class="links" id="links">
-      <a href="#features">Product</a>
+      <a href="#features">Studio</a>
       <a href="#how">How it works</a>
-      <a href="#agent">AI agent</a>
-      <a href="#simulators">Simulators</a>
+      <a href="#agent">Design agent</a>
+      <a href="#use-cases">Use cases</a>
       <a href="#pricing">Pricing</a>
       <a href="/docs" target="_blank" rel="noopener">API</a>
     </div>
@@ -27,135 +33,235 @@
       <a class="btn sm ghost hide-sm" href="/login">Sign in</a>
       <a class="btn sm primary" href="/signup">Start free</a>
     </div>
-    <button class="btn sm ghost menu-btn" id="menu" aria-label="menu">☰</button>
+    <button class="btn sm ghost menu-btn" id="menu" aria-label="Menu" aria-expanded="false" aria-controls="links">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path class="l1" d="M3 5h12"/><path class="l2" d="M3 9h12"/><path class="l3" d="M3 13h12"/></svg>
+    </button>
   </div>
 </nav>
 
+<main id="main">
 <header class="hero">
+  <div class="bg" aria-hidden="true"><i class="blob b1"></i><i class="blob b2"></i><i class="scan"></i></div>
   <div class="wrap hero-grid">
-    <div>
-      <span class="eyebrow">AI design · physics simulation · operator training</span>
-      <h1>From a sentence, a sketch or a CAD file to a <span class="grad">verified plant model</span>.</h1>
-      <p class="lead">DuoSim's design agent plans, builds and checks 3-D process-plant layouts in FreeCAD. Then you
-        run them in first-principles simulators, from a cement kiln line to your own process models.</p>
+    <div class="hero-copy">
+      <span class="eyebrow pill"><i class="dot"></i>The AI design studio for industrial plants</span>
+      <h1>Describe a plant. <span class="grad">Get a verified <span class="nw">3-D</span> model.</span></h1>
+      <p class="lead">Turn a sentence, a sketch or a CAD file into an editable model built in a real CAD kernel and measured against its own spec. Then export it, simulate it, or call it from your own tools.</p>
       <div class="cta">
-        <a class="btn lg primary" href="/signup">Start free, 50 credits</a>
-        <a class="btn lg" href="/hmi">Try the kiln simulator ↗</a>
+        <a class="btn lg primary glow" href="/signup">Start free, 50 credits</a>
+        <a class="btn lg" href="#use-cases">Explore use cases <span aria-hidden="true">→</span></a>
       </div>
-      <div class="proof"><span>No card required</span><span>STEP · FCStd · STL export</span><span>Bring your own model keys</span></div>
+      <ul class="proof"><li>No card required</li><li>STEP · FCStd · STL export</li><li>Bring your own model keys</li></ul>
     </div>
-    <div class="hero-visual">
-      <div class="shot"><div class="bar"><i></i><i></i><i></i></div>
-        <img src="/static/assets/img/hero_studio.jpg" alt="DuoSim Studio: a design brief turned into a 3-D FreeCAD model with a verification table" width="1400" height="788">
+
+    <div class="demo" id="demo" role="group" aria-label="Animated example: DuoSim designing a plant from a written brief">
+      <div class="demo-bar">
+        <i></i><i></i><i></i><span class="demo-title">Studio · example run</span>
+        <button class="demo-pause" id="demo-pause" type="button" aria-pressed="false" aria-label="Pause animation">
+          <svg class="i-pause" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9" rx="1"/><rect x="7" y="1.5" width="3" height="9" rx="1"/></svg>
+          <svg class="i-play" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 1.5v9l7.5-4.5z"/></svg>
+        </button>
       </div>
-      <div class="float f1"><span class="muted">Every part verified</span><b>volume · position · solid</b></div>
-      <div class="float f2"><span class="muted">Agent critic score</span><b class="grad">96 / 100</b></div>
+      <div class="demo-tabs" id="demo-tabs" role="tablist" aria-label="Example plants"></div>
+      <div class="demo-prompt"><span class="lbl">Brief</span><p id="demo-prompt" aria-live="off"></p></div>
+      <div class="demo-stage">
+        <svg class="iso" id="demo-svg" viewBox="0 0 400 260" role="img" aria-label="Isometric drawing of the example plant" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="chips" id="demo-chips" aria-hidden="true"></div>
+        <div class="score"><span>Critic score</span><b id="demo-score">–</b></div>
+      </div>
+      <div class="demo-table" aria-label="Verification">
+        <div class="vhead"><span>Verification</span><span id="demo-count"></span></div>
+        <div class="vrows" id="demo-rows"></div>
+      </div>
+      <p class="demo-note">Illustrative example. Volumes are computed from the dimensions in each spec.</p>
     </div>
   </div>
-  <div class="wrap trust">
-    <span>FreeCAD &amp; OpenCASCADE kernel</span><span>Gemini · Claude · OpenAI · open models</span><span>First-principles physics</span><span>ISA-18.2 alarms</span><span>REST API &amp; webhooks</span>
+
+  <div class="marquee" aria-label="Formats, kernels and models">
+    <div class="track">
+      <ul>
+        <li>STEP</li><li>FreeCAD .FCStd</li><li>STL</li><li>OBJ</li><li>DXF</li><li>IGES</li><li>BREP</li><li>OpenCASCADE</li><li>Gemini</li><li>Claude</li><li>OpenAI</li><li>OpenRouter · Ollama · vLLM</li><li>REST API</li><li>Signed webhooks</li>
+      </ul>
+      <ul aria-hidden="true">
+        <li>STEP</li><li>FreeCAD .FCStd</li><li>STL</li><li>OBJ</li><li>DXF</li><li>IGES</li><li>BREP</li><li>OpenCASCADE</li><li>Gemini</li><li>Claude</li><li>OpenAI</li><li>OpenRouter · Ollama · vLLM</li><li>REST API</li><li>Signed webhooks</li>
+      </ul>
+    </div>
   </div>
 </header>
 
 <section class="block" id="features">
   <div class="wrap">
-    <div class="head">
-      <span class="eyebrow">Product</span>
-      <h2>Three ways in. One verified model out.</h2>
-      <p class="muted">Describe it, show it, or upload it. DuoSim turns any of the three into a parametric layout that is built in a real CAD kernel and measured against its own spec.</p>
+    <div class="head reveal">
+      <span class="eyebrow">The studio</span>
+      <h2>Three ways in. <span class="grad">One verified model out.</span></h2>
+      <p class="muted">Describe it, show it, or upload it. DuoSim turns any of the three into a parametric layout, builds it in a real CAD kernel and measures every part against the spec.</p>
     </div>
-    <div class="grid g3">
-      <div class="card feature"><div class="ico">✎</div><h3>Text to CAD</h3>
-        <p>Write a brief such as "a 4-stage preheater tower with ID fan and stack" and get a to-scale layout with sensible dimensions, groups and colours.</p></div>
-      <div class="card feature"><div class="ico">🖼</div><h3>Image to CAD</h3>
-        <p>Upload photos, hand sketches, P&amp;ID snippets or screenshots. Vision models read them, estimate proportions and rebuild the equipment as geometry.</p></div>
-      <div class="card feature"><div class="ico">⬡</div><h3>CAD import</h3>
-        <p>Import STEP, FreeCAD .FCStd, STL, OBJ or DXF layouts, plus IGES and BREP when a FreeCAD worker is attached. Bodies are segmented and fitted to editable primitives, and the volume error is reported.</p></div>
-      <div class="card feature"><div class="ico">◎</div><h3>Agentic design</h3>
-        <p>The agent plans, retrieves similar equipment patterns, generates candidates, critiques the geometry and repairs it, with every step shown in a trace.</p></div>
-      <div class="card feature"><div class="ico">∿</div><h3>Process simulators</h3>
-        <p>A first-principles cement kiln line with an operator HMI, alarms, 19 disturbances and scoring. Plug in your own simulators through a tested contract.</p></div>
-      <div class="card feature"><div class="ico">⇄</div><h3>API, keys &amp; webhooks</h3>
-        <p>Everything in the UI is a REST call. Scoped API keys, signed webhooks and your own model keys (OpenAI, Claude, Gemini or any OpenAI-compatible endpoint).</p></div>
+    <div class="grid g3 inputs">
+      <article class="card tilt reveal">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 220 110"><rect x="10" y="12" width="200" height="86" rx="10" class="f"/><path d="M26 34h110M26 52h160M26 70h84" class="ln"/><rect x="26" y="30" width="6" height="8" class="caret-r"/></svg>
+        </div>
+        <h3>Text to CAD</h3>
+        <p>Write a brief like “a 4-stage preheater with an ID fan and stack” and get a to-scale layout with sensible dimensions, groups and colours.</p>
+      </article>
+      <article class="card tilt reveal" style="--d:.08s">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 220 110"><rect x="10" y="12" width="200" height="86" rx="10" class="f"/><circle cx="62" cy="40" r="9" class="ac"/><path d="M10 84l54-34 38 24 34-20 74 30" class="ln"/></svg>
+        </div>
+        <h3>Image to CAD</h3>
+        <p>Upload photos, hand sketches, P&amp;ID snippets or screenshots. Vision models read them, estimate proportions and rebuild the equipment as geometry.</p>
+      </article>
+      <article class="card tilt reveal" style="--d:.16s">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 220 110"><path d="M110 14l62 30v38l-62 20-62-20V44z" class="f ln"/><path d="M110 14v54M48 44l62 24 62-24M110 68v34" class="ln"/></svg>
+        </div>
+        <h3>CAD import</h3>
+        <p>Import STEP, FreeCAD .FCStd, STL, OBJ or DXF, plus IGES and BREP when a FreeCAD worker is attached. Bodies are fitted to editable primitives and the volume error is reported.</p>
+      </article>
+    </div>
+    <div class="grid g3 minis">
+      <div class="mini reveal"><b>Editable spec</b><span>Every design is a strict JSON spec you can edit and rebuild. The model never writes code.</span></div>
+      <div class="mini reveal" style="--d:.08s"><b>Export anywhere</b><span>STEP, native .FCStd or a mesh, ready for your PLM, CAM or review tool.</span></div>
+      <div class="mini reveal" style="--d:.16s"><b>API, keys &amp; webhooks</b><span>Everything in the UI is a REST call. Scoped API keys, signed webhooks, your own model keys.</span></div>
     </div>
   </div>
 </section>
 
 <section class="block" id="how">
   <div class="wrap">
-    <div class="head">
+    <div class="head reveal">
       <span class="eyebrow">How it works</span>
       <h2>Brief in. Engineering-grade block model out.</h2>
     </div>
-    <div class="grid g4 steps">
-      <div class="card step"><h3>Describe</h3><p>Text, reference images, a CAD file, or all three. Choose the agent depth and the model.</p></div>
-      <div class="card step"><h3>Design</h3><p>The agent plans the equipment, retrieves patterns and produces a strictly validated spec. No code is ever executed from the model.</p></div>
-      <div class="card step"><h3>Verify</h3><p>FreeCAD builds every part and measures volume, centre of mass and solid validity against closed-form values.</p></div>
-      <div class="card step"><h3>Use it</h3><p>Download STEP, FCStd or a mesh, edit the spec, simulate it, or send it to your PLM through a webhook.</p></div>
-    </div>
+    <ol class="timeline" id="timeline">
+      <li class="reveal"><span class="node">1</span><h3>Describe</h3><p>Text, reference images, a CAD file, or all three. Choose the agent depth and the model.</p></li>
+      <li class="reveal" style="--d:.1s"><span class="node">2</span><h3>Design</h3><p>The agent plans the equipment, retrieves patterns and produces a strictly validated spec. No code is ever executed from the model.</p></li>
+      <li class="reveal" style="--d:.2s"><span class="node">3</span><h3>Verify</h3><p>FreeCAD builds every part and measures volume, centre of mass and solid validity against closed-form values.</p></li>
+      <li class="reveal" style="--d:.3s"><span class="node">4</span><h3>Use it</h3><p>Download STEP, FCStd or a mesh, edit the spec, simulate it, or send it to your PLM through a webhook.</p></li>
+    </ol>
   </div>
 </section>
 
 <section class="block" id="agent">
   <div class="wrap split">
-    <div>
+    <div class="reveal">
       <span class="eyebrow">The design agent</span>
-      <h2>Reasoning you can audit, not a black box.</h2>
+      <h2>Reasoning you can audit, <span class="grad">not a black box.</span></h2>
       <p class="muted">DuoSim does not trust a model's first answer. Each design is planned, generated against retrieved worked examples, checked by deterministic engineering rules and by the CAD kernel, and, in deep mode, reviewed by a vision model looking at the actual render.</p>
-      <ul>
-        <li>Plan first: equipment list, dimensions, assumptions, and open questions for you</li>
+      <ul class="ticks">
+        <li>Plan first: equipment list, dimensions, assumptions and open questions for you</li>
         <li>Retrieval of matching equipment patterns (cyclones, kilns, fans, tanks, filters…)</li>
         <li>Geometric critic: floating parts, open pipe ends, duplicates, scale against the plan</li>
         <li>Best-of-N candidates and repairs that are never allowed to make the design worse</li>
         <li>Exact kernel verification plus visual judgement of the render</li>
       </ul>
     </div>
-    <div class="card">
-      <h3>Agent modes</h3>
-      <table class="t">
-        <thead><tr><th>Mode</th><th>What runs</th><th class="n">Credits</th></tr></thead>
-        <tbody id="mode-costs">
-          <tr><td><b>Fast</b></td><td>generate + validator repair</td><td class="n">2</td></tr>
-          <tr><td><b>Standard</b></td><td>+ plan, retrieval, critique &amp; repair</td><td class="n">4</td></tr>
-          <tr><td><b>Deep</b></td><td>+ 2 candidates, visual judge, rebuild</td><td class="n">10</td></tr>
-        </tbody>
-      </table>
-      <div class="pipeline">
-        <span>plan</span><span class="arrow">→</span><span>retrieve</span><span class="arrow">→</span><span>generate</span><span class="arrow">→</span>
-        <span>critique</span><span class="arrow">→</span><span>repair</span><span class="arrow">→</span><span>build</span><span class="arrow">→</span><span>judge</span>
+    <div class="stack reveal" style="--d:.1s">
+      <div class="card term" id="trace" aria-label="Example agent trace">
+        <div class="term-bar"><i></i><i></i><i></i><span>agent trace · example</span></div>
+        <ol>
+          <li><b>plan</b><span>8 parts · 3 assumptions · 1 open question</span></li>
+          <li><b>retrieve</b><span>cyclone, rotary kiln and grate cooler patterns</span></li>
+          <li><b>generate</b><span>candidate A and candidate B</span></li>
+          <li class="warn"><b>critique</b><span>“stack” floats 0.4 m above the slab → repair</span></li>
+          <li><b>build</b><span>FreeCAD kernel · every solid valid</span></li>
+          <li class="ok"><b>judge</b><span>render reviewed · score 96 / 100</span></li>
+        </ol>
       </div>
+      <div class="card">
+        <h3>Agent modes</h3>
+        <table class="t">
+          <thead><tr><th>Mode</th><th>What runs</th><th class="n">Credits</th></tr></thead>
+          <tbody id="mode-costs">
+            <tr><td><b>Fast</b></td><td>generate + validator repair</td><td class="n">2</td></tr>
+            <tr><td><b>Standard</b></td><td>+ plan, retrieval, critique &amp; repair</td><td class="n">4</td></tr>
+            <tr><td><b>Deep</b></td><td>+ 2 candidates, visual judge, rebuild</td><td class="n">10</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="use-cases">
+  <div class="wrap">
+    <div class="head reveal">
+      <span class="eyebrow">Use cases</span>
+      <h2>One studio. <span class="grad">Any process plant.</span></h2>
+      <p class="muted">Cement is where DuoSim started and it ships with a flagship simulator. The design studio works on any equipment you can describe, and the same engine drives every example below.</p>
+    </div>
+    <div class="bento">
+      <article class="card uc uc-main reveal" data-scene="cement">
+        <div class="uc-art"></div>
+        <div class="uc-body">
+          <span class="chip brand">Design + simulate · flagship</span>
+          <h3>Cement &amp; minerals</h3>
+          <p>Preheaters, calciners, kilns, coolers and draught systems, with a first-principles 3000 t/d kiln line to operate once the layout is done.</p>
+          <a class="more" href="/hmi">Open the kiln simulator <span aria-hidden="true">↗</span></a>
+        </div>
+      </article>
+      <article class="card uc reveal" style="--d:.08s" data-scene="tanks">
+        <div class="uc-art"></div>
+        <div class="uc-body"><span class="chip">Design</span><h3>Chemicals &amp; storage</h3><p>Tank farms, pump skids, manifolds and bunds.</p></div>
+      </article>
+      <article class="card uc reveal" style="--d:.16s" data-scene="water">
+        <div class="uc-art"></div>
+        <div class="uc-body"><span class="chip brand">Design + simulate</span><h3>Water &amp; utilities</h3><p>Clarifiers, basins and filters, with a water-tank level simulator.</p></div>
+      </article>
+      <article class="card uc reveal" style="--d:.24s" data-scene="boiler">
+        <div class="uc-art"></div>
+        <div class="uc-body"><span class="chip">Design</span><h3>Power &amp; steam</h3><p>Boiler houses, economisers, fans and stacks.</p></div>
+      </article>
+      <article class="card uc uc-plug reveal" style="--d:.32s">
+        <div class="uc-body">
+          <span class="chip">Extend</span>
+          <h3>Your process</h3>
+          <p>Describe anything built from boxes, cylinders, cones, tubes, spheres and pipes, or add a simulator through the plug-in contract.</p>
+          <pre class="code" aria-label="Scaffold a simulator"><code><span class="c">$</span> python -m duosim.platform new boiler_drum \
+    --name "Boiler drum level"</code></pre>
+        </div>
+      </article>
     </div>
   </div>
 </section>
 
 <section class="block" id="simulators">
   <div class="wrap split">
-    <div class="shot"><div class="bar"><i></i><i></i><i></i></div>
-      <img src="/static/assets/img/hero_hmi.jpg" alt="Operator HMI of the cement kiln simulator with live process values" width="1400" height="788">
+    <div class="shot reveal"><div class="bar"><i></i><i></i><i></i></div>
+      <img src="/static/assets/img/hero_hmi.jpg" alt="Operator HMI of the cement kiln simulator with live process values" width="1400" height="788" loading="lazy" decoding="async">
     </div>
-    <div>
+    <div class="reveal" style="--d:.1s">
       <span class="eyebrow">Simulators</span>
-      <h2>Design it, then operate it.</h2>
-      <p class="muted">The flagship simulator is a 3000 t/d cement kiln line built on first principles, with mass and energy closure proven by tests. Train operators on a DCS-style HMI, inject faults, score sessions, and watch the plant live in 3-D.</p>
-      <ul>
-        <li>5-stage preheater, calciner, rotary kiln, grate cooler and draught system</li>
+      <h2>Design it, then <span class="grad">operate it.</span></h2>
+      <p class="muted">A model is more useful when it runs. The flagship simulator is a 3000 t/d cement kiln line built on first principles, with mass and energy closure proven by tests. Train operators on a DCS-style HMI, inject faults, score sessions and watch the plant live in 3-D.</p>
+      <ul class="ticks">
+        <li>Preheater, calciner, rotary kiln, grate cooler and draught system</li>
         <li>Group sequences, interlocks, ISA-18.2 alarms, trends and heat balance</li>
         <li>Headless multi-tenant sessions over the API for any simulator plug-in</li>
       </ul>
-      <a class="btn" href="/hmi">Open the operator HMI ↗</a>
+      <a class="btn" href="/hmi">Open the operator HMI <span aria-hidden="true">↗</span></a>
     </div>
+  </div>
+</section>
+
+<section class="stats" aria-label="By the numbers">
+  <div class="wrap grid g4">
+    <div class="reveal"><b data-count="7">7</b><span>CAD and mesh formats you can import</span></div>
+    <div class="reveal" style="--d:.08s"><b data-count="6">6</b><span>primitive solid kinds in every spec</span></div>
+    <div class="reveal" style="--d:.16s"><b data-count="3">3</b><span>agent depths, from fast to deep</span></div>
+    <div class="reveal" style="--d:.24s"><b data-count="0">0</b><span>lines of model-written code executed</span></div>
   </div>
 </section>
 
 <section class="block" id="pricing">
   <div class="wrap">
-    <div class="head">
+    <div class="head reveal">
       <span class="eyebrow">Pricing</span>
       <h2>Start free. Pay for what you design.</h2>
       <p class="muted">Every plan includes monthly credits. Top up any time with credit packs. Failed model calls are refunded automatically.</p>
     </div>
     <div class="grid g4" id="plans"></div>
-    <div class="card costs">
+    <div class="card costs reveal">
       <div class="row" style="justify-content:space-between"><h3 style="margin:0">What a credit buys</h3><span class="muted" id="packs"></span></div>
       <div class="table-wrap"><table class="t"><tbody id="costs"></tbody></table></div>
     </div>
@@ -164,7 +270,8 @@
 
 <section class="block" id="faq">
   <div class="wrap" style="max-width:820px">
-    <div class="head"><span class="eyebrow">FAQ</span><h2>Questions engineers ask</h2></div>
+    <div class="head reveal"><span class="eyebrow">FAQ</span><h2>Questions engineers ask</h2></div>
+    <details class="faq"><summary>Is DuoSim only for cement plants?</summary><p>No. Cement is the flagship simulator and one of the example use cases, but the design studio works on any equipment you can describe: tanks, filters, boilers, fans, piping, process skids and more. Add your own simulator through the plug-in contract.</p></details>
     <details class="faq"><summary>Is the output real CAD or just a picture?</summary><p>Real CAD. Every design is built in FreeCAD (OpenCASCADE) and can be downloaded as STEP, as a native .FCStd document or as a mesh. Each part is measured after the build and compared with the spec.</p></details>
     <details class="faq"><summary>Which AI models are used? Can I use my own?</summary><p>The platform runs Gemini, Claude and OpenAI models. On Pro and above you can add your own keys for OpenAI, Anthropic, Google, or any OpenAI-compatible endpoint such as OpenRouter, Groq, vLLM or Ollama. Keys are encrypted at rest, and design calls that use them cost fewer credits.</p></details>
     <details class="faq"><summary>What CAD formats can I import?</summary><p>STEP, FreeCAD .FCStd, STL, OBJ and DXF out of the box, plus IGES and BREP when a FreeCAD worker is attached. Parametric FreeCAD primitives are imported exactly. Other solids are fitted to boxes, cylinders, cones, tubes and spheres, and the fit error is reported per import.</p></details>
@@ -174,23 +281,24 @@
   </div>
 </section>
 
-<section class="block" style="border-top:none;padding-top:20px">
+<section class="block closer">
   <div class="wrap">
-    <div class="cta-band">
-      <h2 style="font-size:clamp(26px,3.2vw,38px)">Your next plant layout is a sentence away.</h2>
+    <div class="cta-band reveal">
+      <h2>Your next plant layout is a sentence away.</h2>
       <p class="muted">50 free credits every month. No card required.</p>
-      <a class="btn lg primary" href="/signup">Create your workspace</a>
+      <a class="btn lg primary glow" href="/signup">Create your workspace</a>
     </div>
   </div>
 </section>
+</main>
 
 <footer class="site">
   <div class="wrap">
-    <div><a class="brand" href="/"><span class="logo"></span><span>Duo<b>Sim</b></span></a><p class="faint" style="margin-top:10px">AI plant design and process simulation.</p></div>
-    <div class="row" style="gap:22px;align-items:flex-start">
+    <div><a class="brand" href="/"><span class="logo"></span><span>Duo<b>Sim</b></span></a><p class="faint" style="margin-top:10px">AI design studio for industrial plants.</p></div>
+    <nav class="row" style="gap:22px;align-items:flex-start" aria-label="Footer">
       <a href="/app">Studio</a><a href="/hmi">Kiln simulator</a><a href="/3d">3-D plant</a><a href="/docs">API reference</a>
       <a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/healthz">Status</a>
-    </div>
+    </nav>
   </div>
   <div class="wrap faint" style="margin-top:18px">© <span id="year"></span> DuoSim. Simulex is a registered trademark of KHD Humboldt Wedag; DuoSim is independent and not affiliated with KHD.</div>
 </footer>
